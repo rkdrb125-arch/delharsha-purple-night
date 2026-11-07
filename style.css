@@ -3,11 +3,13 @@
 .journal-entry{padding:12px 0;border-bottom:1px solid #ffffff24;line-height:1.6}.journal-entry p{white-space:pre-line;color:var(--muted);font-size:.9rem;margin:6px 0 0}.hud{gap:6px}.hud button{flex:0 1 auto}@media(max-width:600px){.hud button{font-size:.75rem;padding:7px 9px}}
 
 /* v5 character reference */
-.character-portrait{display:block;max-height:430px;max-width:100%;width:auto;object-fit:contain;margin:16px auto;background:radial-gradient(ellipse at 50% 55%,rgba(160,130,198,.19),transparent 70%);border-radius:14px}
+
 
 /* v6: character stage */
 .placeholder{position:relative;min-height:330px;overflow:hidden;background:radial-gradient(ellipse at 50% 85%,#68477770,transparent 65%),linear-gradient(135deg,#1b142b,#3c2850 60%,#1a172b);}
-.stage-hidden{display:none}.stage-portraits{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:clamp(0px,4vw,42px);pointer-events:none}.stage-character{height:min(40vh,420px);max-width:48%;object-fit:contain;object-position:bottom;filter:drop-shadow(0 8px 24px #09051299)}.stage-character.miguel{height:min(39vh,410px)}.stage-caption{position:absolute;top:17px;left:20px;letter-spacing:.18em;color:#eed8ffb8;font-size:.78rem}.stage-ornament{position:absolute;right:20px;top:15px;color:#cda7f4}.placeholder:has(.stage-character) .stage-ornament{opacity:.6}@media(max-width:600px){.placeholder{min-height:260px}.stage-character{height:260px}.stage-character.miguel{height:255px}.stage-caption{font-size:.66rem}}
+.stage-hidden{display:none}.stage-caption{position:absolute;top:17px;left:20px;letter-spacing:.18em;color:#eed8ffb8;font-size:.78rem}.stage-ornament{position:absolute;right:20px;top:15px;color:#cda7f4}@media(max-width:600px){.placeholder{min-height:260px}.stage-caption{font-size:.66rem}}
 
 /* v11: lore archive */
 .lore-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin:12px 0}.lore-menu button{text-align:left;font-size:.82rem;padding:9px}.lore-reader{white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;font-size:.87rem;line-height:1.7;color:var(--text);background:#171222;border:1px solid #6c567e;border-radius:10px;padding:15px;max-height:45vh;overflow:auto}.modal-panel:has(.lore-library){width:min(760px,100%)}
+
+.lore-update-btn{margin:14px 0 6px;width:100%;border:1px solid #a98bce;background:#48315f;color:#fff;padding:12px;border-radius:10px;font-weight:700}.lore-update-btn:disabled{opacity:.6}
