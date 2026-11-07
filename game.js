@@ -2372,24 +2372,43 @@ $('loreHomeBtn').onclick=loreLibrary;$('loreBtn').onclick=loreLibrary;
  }
  const observer=new MutationObserver(mutations=>{if(mutations.some(m=>m.type==='childList'))paginate(true);});
  observer.observe(choices,{childList:true});paginate(true);
- // Place-specific background image lookup. Missing images keep the gradient fallback.
+ // v61: bundled backgrounds, mapped by actual location and scene context.
  const bg=document.getElementById('stage');
  const originalStage=renderStage;
- renderStage=function(node){originalStage(node);
-  const id=String(state.node||'');const text=String(node.chapter||'')+' '+String(node.text||'').slice(0,100);
-  let name='palace';
-  if(/garden|정원|장미/.test(id+' '+text))name='garden';
-  else if(/terrace|발코니|테라스/.test(id+' '+text))name='terrace';
-  else if(/greenhouse|온실/.test(id+' '+text))name='greenhouse';
-  else if(/council|회의|정치|협상/.test(id+' '+text))name='council';
-  else if(/ball|연회|무도회/.test(id+' '+text))name='ballroom';
-  else if(/library|서고|서재/.test(id+' '+text))name='library';
-  else if(/manor|저택|백작가/.test(id+' '+text))name='manor';
-  bg.style.backgroundImage='';
-  const img=new Image();img.onload=()=>{if(state.node===id)bg.style.backgroundImage='linear-gradient(180deg,#140d1d25,#130d1a20 55%,#140b1b77),url("assets/backgrounds/'+name+'.webp")';};
-  img.onerror=()=>{if(state.node===id)bg.style.backgroundImage='';};
-  img.src='assets/backgrounds/'+name+'.webp';
+ const BG_FILES=new Set(['terrace','rose_garden','grand_hall','leonhardt_manor','ballroom_balcony','royal_bedroom','library','lion_study','council','ballroom','greenhouse','corridor','tea_salon','palace','garden','manor']);
+ function sceneBackground(node){
+  const id=String(state.node||'');
+  const loc=String((state.exploration&&state.exploration.location)||'');
+  const desc=String(node.chapter||'')+' '+String(node.text||'').slice(0,180);
+  const all=id+' '+desc;
+  if(/침실|bedroom|bedchamber/.test(all))return 'royal_bedroom';
+  if(/사자 문장|lion_study/.test(all))return 'lion_study';
+  if(/티살롱|차를 마시|tea_salon/.test(all))return 'tea_salon';
+  if(/발코니|balcony/.test(all))return 'ballroom_balcony';
+  if(/온실|greenhouse/.test(all))return 'greenhouse';
+  if(/도서관|서재|서고|library|study/.test(all))return 'library';
+  if(/의회|회의|council|협상/.test(all))return 'council';
+  if(/백작가|레온하르트 저택|manor/.test(all))return 'leonhardt_manor';
+  if(/테라스|terrace/.test(all))return 'terrace';
+  if(/회랑|복도|corridor/.test(all))return 'corridor';
+  if(/정원|장미|garden/.test(all))return 'rose_garden';
+  if(/연회|무도회|ballroom|ball_/.test(all))return 'ballroom';
+  if(id==='explore'||/explore/.test(id)){
+   if(loc==='garden')return 'rose_garden';
+   if(loc==='terrace')return 'terrace';
+   if(loc==='corridor')return 'corridor';
+   if(loc==='drawing')return 'tea_salon';
+   if(loc==='hall')return 'grand_hall';
+  }
+  return 'grand_hall';
+ }
+ renderStage=function(node){
+  originalStage(node);
+  const name=sceneBackground(node);
+  bg.style.backgroundImage='linear-gradient(180deg,#140d1d12,#130d1a08 55%,#140b1b66),url("assets/backgrounds/'+name+'.webp")';
+  bg.dataset.background=name;
  };
+
 })();
 
 // v60: small-screen accessibility and viewport stability; no save schema changes.
