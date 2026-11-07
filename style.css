@@ -253,3 +253,36 @@ body:has(#home.active) header #settingsBtn{position:relative;inset:auto;min-heig
 #home .v75-sparkle{backface-visibility:hidden}
 @media(max-width:600px){#home .v75-sparkles-back .v75-sparkle:nth-child(n+51){display:none}#home .v75-sparkles-front .v75-sparkle:nth-child(n+9){display:none}}
 @media(prefers-reduced-motion:reduce){#home .v75-sparkle{animation:none!important;will-change:auto!important}}
+
+/* v79: a calm cinematic transition, scoped to the title only. */
+#home.active.v79-leaving{pointer-events:none!important;animation:v79-title-depart 680ms cubic-bezier(.36,0,.66,1) both!important}
+#home.active.v79-leaving .v75-sparkles-back,#home.active.v79-leaving .v75-sparkles-front{animation:v79-sparkles-vanish 630ms ease-in both!important}
+#home.active.v79-leaving .title-logo-wrap,#home.active.v79-leaving .menu,#home.active.v79-leaving .foot{animation:v79-title-content-out 530ms ease-in both!important}
+#game.active.v79-arriving{animation:v79-game-arrive 800ms ease-out both}
+@keyframes v79-title-depart{0%{opacity:1;filter:brightness(1)}75%{opacity:.65;filter:brightness(1.1)}100%{opacity:0;filter:brightness(.72)}}
+@keyframes v79-sparkles-vanish{0%{opacity:1;transform:scale(1)}65%{opacity:.9;transform:scale(1.025)}100%{opacity:0;transform:scale(1.065)}}
+@keyframes v79-title-content-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-10px)}}
+@keyframes v79-game-arrive{from{opacity:0;filter:brightness(.78)}to{opacity:1;filter:brightness(1)}}
+@media(prefers-reduced-motion:reduce){#home.v79-leaving,#home.v79-leaving *,#game.v79-arriving{animation:none!important;transition:none!important}}
+
+/* v80: title and game transitions cannot leave invisible clickable surfaces behind. */
+#home.active.v80-leaving{pointer-events:none!important;animation:v80-title-out 700ms cubic-bezier(.4,0,.7,1) both!important}
+#home.active.v80-leaving .v75-sparkles{animation:v80-stars-out 650ms ease-in both!important}
+#home.active.v80-leaving .title-logo-wrap,#home.active.v80-leaving .menu,#home.active.v80-leaving .foot{animation:v80-content-out 560ms ease-in both!important}
+#game.active.v80-arriving{animation:v80-game-in 840ms cubic-bezier(.2,.7,.2,1) both!important}
+@keyframes v80-title-out{0%{opacity:1;filter:brightness(1)}45%{opacity:1;filter:brightness(1.06)}100%{opacity:0;filter:brightness(.78)}}
+@keyframes v80-stars-out{0%{opacity:1;transform:scale(1)}48%{opacity:.85;transform:scale(1.02)}100%{opacity:0;transform:scale(1.07)}}
+@keyframes v80-content-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-8px)}}
+@keyframes v80-game-in{from{opacity:0;filter:brightness(.82)}to{opacity:1;filter:brightness(1)}}
+@media(prefers-reduced-motion:reduce){#home.v80-leaving,#home.v80-leaving *,#game.v80-arriving{animation:none!important;transition:none!important}}
+
+/* v81: a single, predictable departure/arrival animation; no stacked v79/v80 motion. */
+#home.active.v80-leaving{animation:v81-title-out 720ms cubic-bezier(.32,0,.72,1) both!important}
+#home.active.v80-leaving .v75-sparkles{animation:v81-stars-out 680ms ease-in both!important}
+#home.active.v80-leaving .title-logo-wrap,#home.active.v80-leaving .menu,#home.active.v80-leaving .foot{animation:v81-content-out 570ms ease-in both!important}
+#game.active.v80-arriving{animation:v81-game-in 840ms cubic-bezier(.22,.75,.22,1) both!important}
+@keyframes v81-title-out{0%{opacity:1;filter:brightness(1)}40%{opacity:1;filter:brightness(1.045)}100%{opacity:0;filter:brightness(.85)}}
+@keyframes v81-stars-out{0%{opacity:1;transform:scale(1)}35%{opacity:.96;transform:scale(1.012)}100%{opacity:0;transform:scale(1.045)}}
+@keyframes v81-content-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-6px)}}
+@keyframes v81-game-in{from{opacity:0;filter:brightness(.88)}to{opacity:1;filter:brightness(1)}}
+@media(prefers-reduced-motion:reduce){#home.v80-leaving,#home.v80-leaving *,#game.v80-arriving{animation:none!important;transition:none!important}}
