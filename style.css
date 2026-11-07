@@ -140,3 +140,87 @@ body:has(#home.active) header #settingsBtn{position:relative;min-height:42px;whi
  #home .title-logo-wrap{height:clamp(115px,25dvh,235px);}
 }
 @media(max-height:520px) and (orientation:landscape){#home{padding-top:65px;}#home .title-logo-wrap{height:100px;}body:has(#home.active) header #openingPanel .opening-inner{max-height:calc(100dvh - 68px);overflow:auto;}}
+
+
+/* v66.1 FIX: one authoritative title layout, overriding legacy v59-v66 rules. */
+body:has(#home.active) #app > header {position:fixed!important;top:0!important;left:0!important;right:0!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 8px!important;z-index:100!important;pointer-events:none!important;background:linear-gradient(180deg,rgba(16,9,25,.64),transparent)!important;}
+body:has(#home.active) #app > header .brand {display:none!important;}
+body:has(#home.active) #app > header #openingPanel {display:block!important;position:relative!important;inset:auto!important;top:auto!important;right:auto!important;left:auto!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;margin:0!important;padding:0!important;z-index:102!important;pointer-events:auto!important;border-radius:10px!important;background:rgba(26,17,38,.82)!important;}
+body:has(#home.active) #app > header #openingPanel .opening-heading {font-size:12px!important;line-height:1.2!important;min-height:36px!important;padding:8px 10px!important;white-space:nowrap!important;letter-spacing:0!important;}
+body:has(#home.active) #app > header #openingPanel .opening-inner {position:absolute!important;top:calc(100% + 8px)!important;right:0!important;left:auto!important;width:min(290px,calc(100vw - 28px))!important;max-height:calc(100dvh - 85px)!important;overflow-y:auto!important;padding:12px!important;border-radius:12px!important;background:rgba(25,15,38,.97)!important;box-shadow:0 12px 32px #0009!important;}
+body:has(#home.active) #app > header #settingsBtn {position:relative!important;inset:auto!important;display:block!important;flex:0 0 auto!important;min-height:36px!important;padding:7px 10px!important;font-size:12px!important;line-height:1.2!important;margin:0!important;z-index:101!important;pointer-events:auto!important;background:rgba(26,17,38,.82)!important;}
+#home.active {display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-items:center!important;gap:0!important;min-height:100dvh!important;padding:calc(78px + env(safe-area-inset-top,0px)) 16px max(24px,env(safe-area-inset-bottom,0px))!important;overflow-y:auto!important;}
+#home.active .title-logo-wrap {width:min(600px,92vw)!important;height:clamp(145px,30dvh,310px)!important;margin:0 auto clamp(14px,3dvh,30px)!important;flex:none!important;}
+#home.active .title-logo {width:100%!important;height:100%!important;object-fit:contain!important;}
+#home.active .menu {width:min(390px,100%)!important;display:flex!important;flex-direction:column!important;gap:10px!important;margin:0 auto!important;}
+#home.active .menu button {min-height:48px!important;padding:11px 14px!important;}
+#home.active .foot {margin:18px 0 0!important;text-align:center!important;}
+@media(max-width:600px){body:has(#home.active) #app > header{padding:calc(8px + env(safe-area-inset-top,0px)) 10px 6px!important;gap:6px!important;}#home.active{padding:calc(70px + env(safe-area-inset-top,0px)) 14px max(18px,env(safe-area-inset-bottom,0px))!important;}#home.active .title-logo-wrap{height:clamp(125px,25dvh,230px)!important;margin-bottom:12px!important;}#home.active .menu{gap:8px!important;}#home.active .menu button{min-height:46px!important;}}
+@media(max-height:580px) and (orientation:landscape){#home.active{padding-top:calc(58px + env(safe-area-inset-top,0px))!important;}#home.active .title-logo-wrap{height:105px!important;margin-bottom:6px!important;}#home.active .menu{gap:6px!important;}#home.active .menu button{min-height:38px!important;}}
+
+/* v67: inner monologue is visually separate; narrative and spoken dialogue stay fully opaque. */
+#game #line .v67-prose{display:block;white-space:pre-line;opacity:1}
+#game #line .v67-inner-thought{display:block;margin-top:.85em;white-space:pre-line;opacity:.70;font-style:italic;letter-spacing:.012em}
+
+/* v68: Daniel interior monologue, 70% opacity */
+#game .v68-thought{display:inline;opacity:.7;font-style:italic;white-space:pre-wrap;}
+
+/* v71 · atmospheric scene crossfade, without blocking the dialogue controls. */
+#stage{position:relative;isolation:isolate;}
+#stage .v71-scene-crossfade{position:absolute;inset:0;z-index:1;pointer-events:none;background-position:center;background-size:cover;opacity:1;transition:opacity 950ms ease-in-out;}
+#stage .v71-scene-crossfade.v71-fade-away{opacity:0;}
+@media(prefers-reduced-motion:reduce){#stage .v71-scene-crossfade{transition-duration:.01ms;}}
+
+/* v74 title redesign: original title art/logo preserved; two atmospheric depth planes. */
+#home.active{isolation:isolate!important;}
+#home.active .title-logo-wrap{position:relative!important;z-index:3!important;pointer-events:none;}
+#home.active .menu{position:relative!important;z-index:4!important;}
+#home.active .foot{position:relative!important;z-index:4!important;}
+#home .v74-sparkles{position:absolute;inset:0;overflow:hidden;pointer-events:none!important;contain:paint;}
+#home .v74-sparkles-back{z-index:1;}
+#home .v74-sparkles-front{z-index:9;}
+#home .v74-sparkle{position:absolute;display:block;left:var(--x);top:var(--y);width:var(--size);height:var(--size);border-radius:50%;opacity:0;will-change:transform,opacity;animation:v74-drift var(--duration) linear var(--delay) infinite;}
+#home .v74-sparkles-back .v74-sparkle{box-shadow:0 0 2px var(--glow);}
+#home .v74-sparkles-front .v74-sparkle{box-shadow:0 0 5px 1px var(--glow);}
+@keyframes v74-drift{0%{transform:translate3d(0,0,0);opacity:0}14%{opacity:var(--opacity)}72%{opacity:var(--opacity)}100%{transform:translate3d(var(--dx),var(--dy),0);opacity:0}}
+@media(min-width:801px){
+ #home.active{align-items:stretch!important;justify-content:center!important;padding:calc(85px + env(safe-area-inset-top,0px)) clamp(26px,5vw,100px) 40px!important;}
+ #home.active .title-logo-wrap{width:min(48vw,650px)!important;height:clamp(190px,40vh,480px)!important;margin:0 auto 0 2vw!important;align-self:flex-start!important;}
+ #home.active .menu{position:absolute!important;top:50%!important;right:clamp(38px,7vw,155px)!important;transform:translateY(-38%)!important;width:clamp(215px,24vw,320px)!important;margin:0!important;gap:13px!important;}
+ #home.active .menu button{background:rgba(27,18,40,.63)!important;border:1px solid rgba(228,199,246,.46)!important;backdrop-filter:blur(9px);transition:background .2s,box-shadow .2s,transform .2s!important;}
+ #home.active .menu button:hover,#home.active .menu button:focus-visible{background:rgba(77,51,101,.83)!important;box-shadow:0 0 18px rgba(225,189,252,.28)!important;transform:translateX(-3px)!important;}
+ #home.active .foot{position:absolute!important;bottom:26px!important;left:5vw!important;}
+}
+@media(max-width:800px){
+ #home.active{justify-content:flex-end!important;padding:calc(75px + env(safe-area-inset-top,0px)) 16px max(32px,env(safe-area-inset-bottom,0px))!important;}
+ #home.active .title-logo-wrap{position:absolute!important;top:clamp(75px,14dvh,160px)!important;left:50%!important;transform:translateX(-50%)!important;width:min(92vw,500px)!important;height:clamp(145px,31dvh,290px)!important;margin:0!important;}
+ #home.active .menu{margin:0 auto!important;width:min(380px,100%)!important;gap:9px!important;}
+ #home.active .menu button{background:rgba(35,22,50,.78)!important;backdrop-filter:blur(8px);}
+ #home.active .foot{margin:12px auto 0!important;font-size:.72rem!important;}
+}
+@media(max-height:520px) and (orientation:landscape){#home.active{min-height:100dvh!important;overflow:auto!important;}#home.active .title-logo-wrap{position:relative!important;top:auto!important;left:auto!important;transform:none!important;height:90px!important;margin:0 auto 10px!important;}#home.active .menu{position:relative!important;top:auto!important;right:auto!important;transform:none!important;gap:5px!important;}#home.active .menu button{min-height:36px!important;padding:6px 10px!important;}#home.active .foot{position:relative!important;bottom:auto!important;left:auto!important;}}
+@media(prefers-reduced-motion:reduce){#home .v74-sparkle{animation:none!important;opacity:calc(var(--opacity) * .5)!important;will-change:auto;}}
+
+/* v75 · depth separation, device adaptation and synchronized title exit. */
+#home{--v75-exit-duration:880ms;}
+#home .v74-sparkle[hidden]{display:none!important;}
+#home .v74-sparkles-back .v74-sparkle{filter:blur(.15px);}
+#home .v74-sparkles-front .v74-sparkle{filter:brightness(1.06);}
+#home.v75-particles-paused .v74-sparkle{animation-play-state:paused!important;}
+#home.active .title-logo-wrap,#home.active .menu,#home.active .foot,#home.active .v74-sparkles{transition:opacity var(--v75-exit-duration) ease-in-out,filter var(--v75-exit-duration) ease-in-out!important;}
+#home.active.v75-leaving .title-logo-wrap,#home.active.v75-leaving .menu,#home.active.v75-leaving .foot,#home.active.v75-leaving .v74-sparkles{opacity:0!important;filter:blur(5px);pointer-events:none!important;}
+#home.active.v75-leaving{pointer-events:none!important;}
+@media(max-width:800px){#home .v74-sparkles-front .v74-sparkle{box-shadow:0 0 3px var(--glow);}}
+@media(prefers-reduced-motion:reduce){#home{--v75-exit-duration:0ms;}#home .v74-sparkle{animation:none!important;opacity:calc(var(--opacity) * .5)!important;}}
+
+/* v76: first scene gently fades in after the title and particles have faded out. */
+#game.active{opacity:1;transition:opacity 650ms ease-out;}
+#game.active.v76-entering{opacity:0;pointer-events:none;}
+#home.active.v75-leaving .menu button{pointer-events:none!important;}
+@media(max-width:800px) and (orientation:landscape){
+ #home.active{padding:8px max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left))!important;}
+ #home.active .title-logo-wrap{max-height:25dvh!important;height:clamp(65px,21dvh,125px)!important;}
+ #home.active .menu{max-width:min(310px,55vw)!important;}
+ #home.active .menu button{font-size:.85rem!important;min-height:34px!important;}
+}
+@media(prefers-reduced-motion:reduce){#game.active{transition:none!important;}}

@@ -379,3 +379,109 @@ GitHub Pages용 정적 게임. `index.html`, `game.js`, `style.css`, `lore/` 폴
 - 오프닝 펼침 패널은 버튼 아래에 떠서 열리며, 메뉴 자체는 설정 버튼과 겹치지 않습니다.
 - 모바일 안전 영역, 좁은 화면 및 낮은 가로 화면에 대응했습니다. 바깥 터치·Escape로 메뉴를 닫습니다.
 - 배경, 타이틀 로고, 한국어·일본어 음원, 게임 스크립트, 세계관 문서 및 저장 데이터 키는 변경하지 않았습니다.
+
+
+## v66.1 UI correction
+- Fixed compact opening dropdown and settings in a single top-right action row.
+- Replaced conflicting title layout with high-specificity screen rules.
+- Cache-busted CSS/JS URLs for GitHub Pages updates.
+- Preserved game.js and all media unchanged.
+
+
+v67: prose revision in early scenes, Daniel inner thoughts as 70%-opacity text.
+
+
+## v68 스토리 추가
+- 기존 장면 문장 수정 없이 신규 4개 연속 사건/16개 장면 추가
+- DAY 2~5 및 장소 조건, 사건별 1회 진행 기록 (`state.v68.seen`)
+- 다니엘 속마음 `thought` 70% 불투명도; 기존 저장 키 및 엔딩 코드 유지
+
+
+## v69 story expansion
+Four sequential Asel delegation follow-up events (19 scenes); see lore/54_v69.
+
+
+## v70 — 인트로와 오프닝 재생 범위 수정
+- 새 게임에서 4개 서막 장면을 먼저 재생한 뒤 기존 intro 노드로 연결합니다. 이전 저장 데이터의 노드 ID는 유지합니다.
+- 한국어·일본어 오프닝 음악은 타이틀에서 사용자가 직접 재생한 경우에만 들립니다. 새 게임/이어하기/불러오기/타이틀 이탈 시 중지합니다.
+- 홈 화면 class 변화를 MutationObserver로 감시해 게임 진입 경로가 달라도 오프닝을 정지합니다.
+- 본편 인트로의 다니엘 thought는 기존 opacity:0.7 스타일을 재사용합니다.
+
+
+## v71 · 장면 및 오프닝 페이드
+- 배경 이미지가 바뀔 때 이전 배경이 약 0.95초 동안 서서히 사라지며 새 배경이 나타납니다. 대사·선택지는 가리지 않습니다.
+- 오프닝 재생 시작 시 약 1.1초 페이드인, 정지 및 본편 이동 시 약 0.85초 페이드아웃합니다.
+- 새로 재생할 때 이전 페이드 작업을 취소하며, 화면 이탈 중 재생이 늦게 시작되는 경우를 방지합니다.
+- 접근성 설정의 동작 줄이기(prefers-reduced-motion)에 따라 배경 페이드가 생략됩니다.
+- 기존 game.js 대사와 선택지 원고는 수정하지 않았습니다.
+
+
+## v72 · 선택형 아셀 조사 사건
+- DAY 9~12, 대리석 회랑 → 응접실 → 장미 정원 → 대연회장 순으로 장소 방문 시 단계별 조사 사건 발생.
+- 문서 조사·보고 방식·관계자 배려·최종 대응을 직접 선택. 각 선택은 서로 다른 장면과 능력치 효과를 갖습니다.
+- 사건 진행은 state.v72.seen/decisions/completed에 저장되며 중복 발생하지 않습니다. 기존 사건·엔딩은 변경하지 않았습니다.
+- 이 사건은 게임 전용 창작 서사이며 정식 AU 설정을 변경하지 않습니다.
+
+
+## v73 선택 결과 후속 분기
+- DAY 13 회랑: 증거 유형(접수 시각/인장)과 원본 보존 또는 추가 확인 선택
+- DAY 14 응접실: 보고 방식과 전날의 선택을 반영한 알렉스의 대응
+- DAY 15 장미 정원: 인물 보호/사절단 입장 선택을 반영한 미겔의 대화
+- DAY 16 연회장: 공동 조사/안전 확보/공개 방식에 따라 접견 분위기가 달라짐
+- v72 조사 완료 후 각 지정 장소에서 순차적으로 한 번씩 발생; v73.seen 및 v73.choices에 저장
+- 새 장면은 기존 스토리를 교체하지 않으며 게임 전용 사건으로 공식 AU 설정과 구분
+
+
+## v74
+- PC 타이틀 우측 메뉴 / 모바일 하단 메뉴
+- 2중 34도 스파클 레이어 (`title-sparkles.js`), 후면 1~2px 75개, 전면 3~4px 12개
+- 기존 타이틀 배경, 로고, 오프닝, 스토리, 저장 로직 유지
+
+
+## v75 타이틀 깊이감 및 페이드 전환
+- 34° 대각선 후면 1~2px(PC 75개/모바일 48개), 전면 3~4px(PC 12개/모바일 8개) 입자를 화면 크기에 따라 이동 거리 보정.
+- 전면 레이어는 로고·UI 앞에 표시하되 pointer-events:none을 유지합니다.
+- 새 게임 또는 정상 불러오기 시 타이틀의 로고·메뉴·입자가 880ms 동안 페이드아웃되고, 오프닝 음원은 같은 시점에 기존 850ms 페이드아웃을 시작합니다.
+- 불러오기 실패 시 타이틀 화면을 유지합니다. 움직임 줄이기 및 비활성 화면에서 애니메이션을 멈춥니다.
+- 저장 구조, 스토리, 음원, 배경, 세계관 자료는 변경하지 않았습니다.
+
+
+## v76 · Title transition polish
+- Title fade-out followed by a 650ms game fade-in; reduced-motion settings bypass animations.
+- Cancellable transitions when returning to title, guarded double-clicks on new/continue/load, particle pause/resume.
+- Failed loads no longer silence title opening audio. Mobile landscape logo/menu adjustments.
+- Story, assets, ending definitions and save schema unchanged.
+
+
+## v78 - Leonhardt brothers family events
+- DAY 17 drawing: Adam, practical responsibility and family stewardship.
+- DAY 18 terrace: Alex, public showmanship and private sincerity; preserves Miguel engagement.
+- DAY 19 corridor: Daniel, personal confidence and a small act of responsibility.
+- Events unlock sequentially after v73 hearing, with persistent state.v78.seen/choices and reload scene recovery.
+- Original story and asset files retained.
+
+
+v79: DAY 20 테라스에 알렉스(ESTP)와 미겔의 사적인 로판풍 반말 대화 이벤트 추가. 기존 콘텐츠와 SAVE_KEY 유지.
+
+
+v80: 기존 알렉스·미겔 동반 등장 장면의 사적 로판 반말 일관성 보강. 기존 다른 인물 대사 및 저장 데이터 구조 유지.
+
+
+## v81 · 익숙한 온기
+- DAY 21 테라스, DAY 22 응접실: 약혼자 알렉스와 미겔의 친밀한 일상 및 다니엘의 내적 성장 이벤트.
+- 알렉스는 미겔에게 로판식 반말을 사용하며, 미겔은 부드럽고 우아하게 응답합니다.
+- 선택과 이벤트 방문은 `state.v81`에 별도 저장됩니다. 기존 엔딩 조건 및 저장 키는 변경하지 않았습니다.
+
+
+## v82 · 관계의 여운 (DAY 23~24)
+- DAY 23 회랑: DAY 21 테라스 선택에 따른 알렉스·미겔 반응 및 새로운 선택 2개.
+- DAY 24 응접실: DAY 22 서신 검토 선택에 따른 다른 대사 및 새로운 선택 2개.
+- 후속 선택과 다니엘 자신감 지표는 state.v82에 저장. 기존 엔딩 조건은 유지.
+- 순서: v79 DAY 20 → v81 DAY 21/22 → v82 DAY 23/24.
+
+
+## v83 · 시간대 기초 및 DAY 1~3 시범
+- 아침·오후·저녁·밤 시간대를 기존 7회 탐색 턴에서 파생하여 DAY 표시에 추가합니다.
+- DAY 1~3의 아침·오후·밤에 선택적으로 읽는 소설형 짧은 이야기를 추가했습니다. 시간대가 맞으면 탐색 첫 메뉴에 표시되며 탐색 횟수를 소모하지 않습니다.
+- 기존 19:00~22:30 시계와 7회 탐색 제한은 아직 유지합니다. 시간대 UI는 단계적 전환을 위한 시범 기능이며, 실제 시간표의 전면 변경은 후속 버전 과제입니다.
+- 기존 날짜 이벤트, 엔딩 판정, 저장 키는 변경하지 않았습니다. v83 상태는 필요할 때 생성되어 이전 저장과 호환됩니다.
