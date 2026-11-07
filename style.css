@@ -25,3 +25,16 @@ html,body{min-height:100%;overflow-x:hidden}#app{min-height:100svh}#game,#game.a
 @media(max-height:560px){#game .dialogue{max-height:70dvh;padding:9px 12px}#game .scene-top{top:38px}#game .hud{height:48px}#game .dialogue{margin-bottom:calc(50px + env(safe-area-inset-bottom,0px))}}
 @media(min-aspect-ratio:16/9){#stage{background-position:center center}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* v62 · Title art and bilingual opening music */
+#home{background:linear-gradient(180deg,#100d1a72,#120c1b99 45%,#120b1ce8),url("assets/backgrounds/title.webp") center center/cover no-repeat;isolation:isolate}
+#home .moon-group{display:none}
+#home h1,#home .eyebrow,#home .tagline{text-shadow:0 2px 14px #130b20,0 0 30px #130b20}
+.opening-controls{width:min(370px,100%);padding:13px 15px;margin:0 0 16px;background:#1c1329d9;border:1px solid #a88abb88;border-radius:14px;backdrop-filter:blur(8px)}
+.opening-heading{font-size:.77rem;color:#ead4ff;letter-spacing:.1em;margin-bottom:9px}
+.opening-languages,.opening-playback{display:flex;gap:8px;justify-content:center}
+.opening-languages button{flex:1;min-height:42px;background:#352447;border:1px solid #7e6894}
+.opening-languages button[aria-pressed="true"]{background:#79518f;border-color:#e5c4ff;box-shadow:inset 0 0 0 1px #e5c4ff}
+.opening-playback{margin-top:9px}.opening-playback button{font-size:.83rem;padding:8px 10px}.opening-playback button:first-child{flex:1}
+.opening-status{margin:9px 0 0;font-size:.75rem;color:#e1d3e8}
+@media(max-height:700px){#home{padding:12px 15px}.eyebrow{margin:8px 0}.tagline{margin:10px 0 15px}.foot{margin-top:14px}.opening-controls{padding:9px;margin-bottom:9px}}
