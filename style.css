@@ -38,3 +38,105 @@ html,body{min-height:100%;overflow-x:hidden}#app{min-height:100svh}#game,#game.a
 .opening-playback{margin-top:9px}.opening-playback button{font-size:.83rem;padding:8px 10px}.opening-playback button:first-child{flex:1}
 .opening-status{margin:9px 0 0;font-size:.75rem;color:#e1d3e8}
 @media(max-height:700px){#home{padding:12px 15px}.eyebrow{margin:8px 0}.tagline{margin:10px 0 15px}.foot{margin-top:14px}.opening-controls{padding:9px;margin-bottom:9px}}
+
+/* v63: user-provided transparent title artwork replaces duplicated HTML heading. */
+#home{justify-content:flex-start;gap:0;padding-top:clamp(66px,9dvh,100px);padding-bottom:max(24px,env(safe-area-inset-bottom));min-height:100dvh;}
+#home .title-logo-wrap{width:min(610px,96vw);height:clamp(190px,32dvh,350px);display:flex;align-items:center;justify-content:center;flex:none;margin:0 auto 4px;pointer-events:none;}
+#home .title-logo{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 5px 16px #0c061b9c);}
+body:has(#home.active) header .brand{display:none;}
+body:has(#home.active) header{justify-content:flex-end;}
+#home .opening-controls{flex:none;}
+#home .menu{flex:none;}
+#home .foot{margin:18px 0 0;}
+@media(max-width:600px){#home{padding:58px 14px max(18px,env(safe-area-inset-bottom));}#home .title-logo-wrap{height:clamp(160px,29dvh,310px);width:min(100%,540px);}#home .opening-controls{margin-bottom:12px;}#home .menu{gap:9px;}#home .menu button{padding:12px;}#home .foot{margin-top:16px;}}
+@media(max-height:740px){#home{padding-top:45px;}#home .title-logo-wrap{height:clamp(115px,25dvh,220px);}#home .opening-controls{padding:8px 12px;margin-bottom:8px;}#home .foot{margin-top:10px;}}
+
+/* v64: responsive title composition, no clipping of opening selector or start actions. */
+#home.active{
+  box-sizing:border-box; min-height:100dvh; height:auto;
+  width:100%; padding:calc(54px + env(safe-area-inset-top,0px)) 16px max(22px,env(safe-area-inset-bottom,0px));
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  overflow-x:hidden; overflow-y:visible; gap:0;
+}
+#home .title-logo-wrap{
+  width:min(610px,96%);height:clamp(145px,29dvh,300px);
+  min-height:0;margin:0 auto clamp(8px,1.5dvh,16px);
+}
+#home .title-logo{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;}
+#home .opening-controls{width:min(420px,100%);box-sizing:border-box;margin:0 auto clamp(14px,2dvh,22px);padding:14px 16px;}
+#home .opening-heading{line-height:1.45;overflow-wrap:anywhere;}
+#home .opening-languages button{min-width:0;min-height:46px;}
+#home .opening-playback button{min-width:0;min-height:44px;overflow-wrap:anywhere;}
+#home .opening-status{min-height:1.3em;line-height:1.4;}
+#home .menu{width:min(420px,100%);gap:10px;margin:0 auto;}
+#home .menu button{min-height:48px;padding:12px 14px;}
+#home .foot{margin:clamp(12px,2dvh,22px) 0 0;line-height:1.5;}
+body:has(#home.active) header{z-index:7;top:env(safe-area-inset-top,0px);padding:7px 12px;}
+body:has(#home.active) header #settingsBtn{min-height:40px;background:#1d1429a8;backdrop-filter:blur(6px);}
+@media(max-width:600px){
+  #home.active{padding:calc(49px + env(safe-area-inset-top,0px)) 14px max(18px,env(safe-area-inset-bottom,0px));}
+  #home .title-logo-wrap{width:100%;height:clamp(125px,25dvh,235px);margin-bottom:clamp(8px,1.2dvh,14px);}
+  #home .opening-controls{padding:11px 12px;margin-bottom:13px;}
+  #home .menu{gap:9px;}
+  #home .menu button{min-height:46px;padding:11px 12px;}
+}
+@media(max-height:720px){
+  #home.active{padding-top:calc(45px + env(safe-area-inset-top,0px));}
+  #home .title-logo-wrap{height:clamp(100px,20dvh,170px);margin-bottom:6px;}
+  #home .opening-controls{padding:8px 11px;margin-bottom:9px;}
+  #home .opening-heading{margin-bottom:6px;}
+  #home .opening-playback{margin-top:6px;}
+  #home .opening-status{margin-top:5px;}
+  #home .menu{gap:7px;}
+  #home .menu button{min-height:43px;padding:9px 12px;}
+  #home .foot{margin-top:10px;}
+}
+@media(max-width:380px){
+  #home.active{padding-left:10px;padding-right:10px;}
+  #home .opening-controls{padding:10px;}
+  #home .opening-languages button{padding:9px 5px;}
+  #home .opening-playback button{padding:8px 7px;font-size:.78rem;}
+}
+@media(orientation:landscape) and (max-height:500px){
+  #home.active{padding-top:calc(40px + env(safe-area-inset-top,0px));}
+  #home .title-logo-wrap{height:110px;}
+  #home .opening-controls{margin-bottom:8px;}
+}
+
+/* v65: compact, collapsible opening player; PC upper-right, mobile unobtrusive. */
+#home.active{position:relative;}
+#home .opening-controls{position:absolute;z-index:8;top:calc(65px + env(safe-area-inset-top,0px));right:clamp(14px,2.4vw,36px);left:auto;width:188px;max-width:calc(100vw - 28px);margin:0;padding:0;border:1px solid #a88abb88;border-radius:12px;background:#1b1328e8;box-shadow:0 5px 18px #09051166;text-align:left;backdrop-filter:blur(12px);}
+#home .opening-controls[open]{width:min(285px,calc(100vw - 28px));}
+#home .opening-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:10px 13px;min-height:42px;list-style:none;cursor:pointer;font-size:.83rem;letter-spacing:.03em;color:#f0dcff;user-select:none;}
+#home .opening-heading::-webkit-details-marker{display:none;}
+#home .opening-heading:focus-visible{outline:2px solid #e2baff;outline-offset:2px;border-radius:9px;}
+#home .opening-chevron{font-size:1.05rem;transition:transform .18s ease;}
+#home .opening-controls[open] .opening-chevron{transform:rotate(180deg);}
+#home .opening-inner{padding:2px 12px 12px;border-top:1px solid #ffffff20;}
+#home .opening-languages{margin-top:10px;}
+#home .opening-languages button{min-height:40px;padding:8px 5px;font-size:.83rem;}
+#home .opening-playback button{min-height:40px;padding:7px 9px;font-size:.79rem;}
+#home .opening-status{margin:7px 0 0;font-size:.71rem;}
+@media(max-width:600px){#home .opening-controls{top:calc(54px + env(safe-area-inset-top,0px));right:12px;width:132px;}#home .opening-controls[open]{width:min(270px,calc(100vw - 24px));}#home .opening-heading{padding:7px 11px;min-height:40px;font-size:.77rem;}#home .opening-inner{padding:2px 10px 10px;}}
+@media(max-height:500px) and (orientation:landscape){#home .opening-controls{top:calc(47px + env(safe-area-inset-top,0px));}}
+
+/* v66 · Title header action dock: opening and settings never overlap. */
+body:has(#home.active) header{display:flex;justify-content:flex-end;align-items:flex-start;gap:10px;top:0;left:0;right:0;padding:calc(12px + env(safe-area-inset-top,0px)) clamp(12px,2.2vw,28px) 8px;z-index:20;pointer-events:none;}
+body:has(#home.active) header #settingsBtn,body:has(#home.active) header #openingPanel{pointer-events:auto;}
+header #openingPanel{display:none;}
+body:has(#home.active) header #openingPanel{display:block;position:relative;inset:auto;top:auto;right:auto;left:auto;width:auto;min-width:120px;max-width:calc(100vw - 120px);margin:0;z-index:22;flex:none;box-shadow:0 6px 18px #09051166;}
+body:has(#home.active) header #openingPanel[open]{width:auto;}
+body:has(#home.active) header #openingPanel .opening-heading{min-height:40px;padding:8px 12px;white-space:nowrap;}
+body:has(#home.active) header #openingPanel .opening-inner{position:absolute;top:calc(100% + 7px);right:0;width:min(285px,calc(100vw - 24px));background:#1b1328f5;border:1px solid #a88abb88;border-radius:12px;padding:12px;box-shadow:0 14px 35px #090511b8;backdrop-filter:blur(16px);}
+body:has(#home.active) header #settingsBtn{position:relative;min-height:42px;white-space:nowrap;margin:0;padding:8px 12px;z-index:21;}
+#home{padding-top:max(96px,calc(85px + env(safe-area-inset-top,0px)));}
+#home .title-logo-wrap{margin-top:0;}
+@media(max-width:600px){
+ body:has(#home.active) header{gap:7px;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 6px;}
+ body:has(#home.active) header #openingPanel{min-width:0;max-width:calc(100vw - 110px);}
+ body:has(#home.active) header #openingPanel .opening-heading{font-size:.75rem;min-height:40px;padding:7px 10px;}
+ body:has(#home.active) header #settingsBtn{min-height:40px;padding:7px 9px;font-size:.79rem;}
+ #home{padding-top:max(82px,calc(74px + env(safe-area-inset-top,0px)));}
+ #home .title-logo-wrap{height:clamp(115px,25dvh,235px);}
+}
+@media(max-height:520px) and (orientation:landscape){#home{padding-top:65px;}#home .title-logo-wrap{height:100px;}body:has(#home.active) header #openingPanel .opening-inner{max-height:calc(100dvh - 68px);overflow:auto;}}

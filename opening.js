@@ -4,6 +4,7 @@
  const ko=document.getElementById('openingKo'),ja=document.getElementById('openingJa');
  const play=document.getElementById('openingPlay'),stop=document.getElementById('openingStop');
  const status=document.getElementById('openingStatus');
+ const panel=document.getElementById('openingPanel');
  const audio=new Audio();audio.preload='none';audio.loop=false;
  const tracks={ko:'assets/audio/opening_ko.mp3',ja:'assets/audio/opening_ja.mp3'};
  const labels={ko:'한국어',ja:'日本語'};
@@ -15,14 +16,17 @@
  function choose(lang){if(selected!==lang)pause();selected=lang;try{localStorage.setItem(key,lang);}catch(_){}update();}
  async function start(){pause();audio.src=tracks[selected];status.textContent=labels[selected]+' 오프닝 재생 중…';try{await audio.play();}catch(_){status.textContent='브라우저가 재생을 차단했습니다. 재생 버튼을 다시 눌러 주세요.';}}
  ko.addEventListener('click',()=>choose('ko'));ja.addEventListener('click',()=>choose('ja'));
- play.addEventListener('click',start);stop.addEventListener('click',()=>{pause();update();});
+ play.addEventListener('click',start);stop.addEventListener('click',()=>{panel.open=false;pause();update();});
  audio.addEventListener('ended',update);
  audio.addEventListener('error',()=>{status.textContent='오프닝 파일을 불러오지 못했습니다.';});
+ // Close the player after selection or when leaving the title; retain language.
+ document.addEventListener('pointerdown',(event)=>{if(panel.open&&!panel.contains(event.target))panel.open=false;});
+ document.addEventListener('keydown',(event)=>{if(event.key==='Escape'&&panel.open)panel.open=false;});
  // New game starts the chosen opening on the user's click, never via forced autoplay.
- document.getElementById('newBtn').addEventListener('click',()=>{void start();});
+ document.getElementById('newBtn').addEventListener('click',()=>{panel.open=false;void start();});
  // Keep soundtrack out of continuing a saved scene; home/title can replay it on demand.
  document.getElementById('continueBtn').addEventListener('click',pause);
  document.getElementById('loadHomeBtn').addEventListener('click',pause);
- document.getElementById('titleBtn').addEventListener('click',()=>{pause();update();});
+ document.getElementById('titleBtn').addEventListener('click',()=>{panel.open=false;pause();update();});
  update();
 })();
