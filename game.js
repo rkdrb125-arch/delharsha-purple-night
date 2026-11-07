@@ -343,7 +343,7 @@ function v18PromiseEncounter(loc,turn){
  const d=v18Data(),promise=d.promise;
  if(!promise||promise.status!=='accepted'||promise.day!==state.day||promise.loc!==loc||promise.turn!==turn)return false;
  promise.status='met';
- const text='테라스의 난간 너머로 보랏빛 하늘이 펼쳐져 있었다. 미겔은 그의 발소리가 가까워지자 고개를 돌렸다.\n\n“레온하르트 경. 오셨군요.”\n\n다니엘은 인사를 하려다 손끝을 움켜쥐었다. 약속한 것은 분명 자신인데, 그녀가 이곳에 있다는 사실이 믿기지 않았다.';
+ const text=(promise.loc==='terrace'?'테라스의 난간 너머로 보랏빛 하늘이 펼쳐져 있었다.':promise.loc==='drawing'?'응접실에는 찻잔을 내려놓는 소리가 잔잔하게 울렸다.':'장미 정원에는 꽃잎을 흔드는 바람이 지나갔다.')+' 미겔은 그의 발소리가 가까워지자 고개를 돌렸다.\n\n“레온하르트 경. 오셨군요.”\n\n다니엘은 인사를 하려다 손끝을 움켜쥐었다. 약속한 것은 분명 자신인데, 그녀가 이곳에 있다는 사실이 믿기지 않았다.';
  v18Remember('promise_'+state.day,'미겔 · 지켜진 약속',text,'관계');
  markMiguelMeeting();
  return v18Scene('promise','미겔 코트리먼',text,[
@@ -491,18 +491,265 @@ function v19Board(){
  const rumors=d.rumors.map(r=>{const item=V19_RUMORS.find(x=>x.id===r.id);return 'DAY '+r.day+' · '+(item?item.text.split(' ')[0]:'소문')+' · '+(r.verified?'확인 시도':'미확인')});
  modal('황궁 인연과 소문',lines.join('\n')+'\n\n[들어본 소문]\n'+(rumors.join('\n')||'아직 들은 소문이 없습니다.')+'\n\n※ 소문은 사실로 확정되지 않은 게임용 이야기입니다.');
 }
+// v20: rumor verification, trust-based errands, promise renewal, Alex tension, and emotion diary.
+const V20_RUMOR_FACTS={
+ roses:{place:'garden',fact:'정원사는 노란 장미를 찾은 손님이 꽃 장식 담당 시종이었다고 설명했다. 미겔의 행방과는 관계가 없었다.',effect:'false'},
+ terrace:{place:'terrace',fact:'테라스에서 기다리던 손님은 악단 책임자였다. 약속 상대의 이름을 들은 이는 없었다.',effect:'false'},
+ brothers:{place:'corridor',fact:'회랑의 경비병은 레온하르트 형제에 관한 대화가 단순한 출입 순서 확인이었다고 전했다. 그 이상의 사정은 알 수 없었다.',effect:'partial'},
+ music:{place:'hall',fact:'악단 보조가 순서표 변경을 확인했다. 한 연주자의 악기가 고장 나 연주 순서를 바꾼 것이었다.',effect:'true'},
+ tea:{place:'drawing',fact:'차 담당 시종은 찻잔을 남긴 손님이 다른 행사에 늦어 급히 이동했다고 말했다. 그 손님의 신원은 밝히지 않았다.',effect:'partial'}
+};
+const V20_ERRANDS={
+ hall:{title:'접힌 연주표',ask:'악단 보조가 접힌 연주표를 건넨다. “연주 순서가 맞는지 마지막으로 확인해 주시겠습니까?”',good:'다니엘은 표의 순서를 하나씩 짚어 확인했다. 악단 보조는 안도의 숨을 내쉬었다.'},
+ corridor:{title:'길을 잃은 손님',ask:'견습 시종이 손님에게 안내할 회랑의 방향을 물었다. “제가 잘못 안내하면 곤란합니다.”',good:'다니엘은 표지판을 확인한 뒤 차분히 방향을 알려 주었다.'},
+ terrace:{title:'흔들리는 화분',ask:'화분 담당 시종이 바람에 흔들리는 받침대를 걱정한다. “잠시만 함께 잡아 주실 수 있습니까?”',good:'다니엘이 받침대를 붙잡는 동안 시종이 고정끈을 묶었다.'},
+ drawing:{title:'식어 버린 찻물',ask:'차 담당 시종이 새 찻잔을 옮길 손이 부족하다고 말했다. “잠깐만 도와주실 수 있겠습니까?”',good:'다니엘은 조심스럽게 찻잔을 옮겼다. 시종은 손님들에게 무사히 차를 내었다.'},
+ garden:{title:'정원의 길',ask:'정원사가 꽃길을 가로막은 빈 화분을 옮기려 한다. “통행에 방해가 되지 않게 해야겠습니다.”',good:'다니엘은 화분을 안전한 곳으로 옮기는 일을 거들었다.'}
+};
+function v20Data(){
+ if(!state.v20||typeof state.v20!=='object')state.v20={rumorChecks:{},errands:{},promiseRenewals:0,alexScenes:{},diary:[],lastDiaryDay:0,rumorImpact:0};
+ const d=state.v20;d.rumorChecks||={};d.errands||={};d.alexScenes||={};d.diary||=[];d.promiseRenewals||=0;d.rumorImpact||=0;return d;
+}
+function v20Record(id,title,text,category='기타'){v18Remember('v20_'+id,title,text,category);}
+function v20VerifyRumor(){
+ const d=v20Data(),r=v19Data().rumors.find(x=>x.day===state.day&&!d.rumorChecks[x.id+'_'+x.day])||v19Data().rumors.find(x=>!d.rumorChecks[x.id+'_'+x.day]);
+ if(!r){modal('소문 확인','확인할 소문이 없습니다. 황궁에서 새로운 소문을 들어 보세요.');return;}
+ const fact=V20_RUMOR_FACTS[r.id];if(!fact){modal('소문 확인','아직 확인 가능한 정보가 없습니다.');return;}
+ if(exploration().turn>=7){modal('소문 확인','오늘은 더 조사할 시간이 없습니다.');return;}
+ exploration().turn++;
+ d.rumorChecks[r.id+'_'+r.day]={day:state.day,result:fact.effect};r.verified=true;r.result=fact.effect;
+ const delta=fact.effect==='true'?2:fact.effect==='false'?-1:0;d.rumorImpact=Math.max(-20,Math.min(20,d.rumorImpact+delta));
+ state.stats.resolve=Math.min(100,state.stats.resolve+1);
+ const narrative='DAY '+r.day+'에 들은 소문을 조심스럽게 확인했다.\n\n'+fact.fact+'\n\n확인된 사실과 짐작을 구분하기로 했다.';
+ v20Record('rumor_'+r.id+'_'+r.day,'소문의 진위 · '+r.id,narrative,'기타');
+ modal('소문 확인 · 30분 경과',narrative+'\n\n소문의 파급 '+d.rumorImpact+' · 남은 이동 '+Math.max(0,7-exploration().turn));render();
+}
+function v20ErrandEvent(loc){
+ const d=v20Data(),npc=v19Data().npc[loc],q=V20_ERRANDS[loc];
+ if(!q||!npc||npc.rapport<2||d.errands[loc]||exploration().turn>6)return false;
+ d.errands[loc]={offeredDay:state.day,status:'offered'};
+ return v18Scene('v20errand',V19_NPC_PROFILES[loc].name,q.ask+'\n\n낯익은 얼굴을 알아본 시종은 다니엘의 대답을 기다렸다.',[
+  {text:'“제가 도울 수 있다면 기꺼이 돕겠습니다.”',next:'explore',v20Errand:loc,v20ErrandMode:'help',effects:{reputation:2,resolve:1}},
+  {text:'“죄송합니다. 지금은 다른 일을 찾고 있습니다.”',next:'explore',v20Errand:loc,v20ErrandMode:'decline',effects:{resolve:1}}
+ ]);
+}
+function v20PromiseRenew(){
+ const p=v18Data().promise,d=v20Data();
+ if(!p||!['missed','met','declined'].includes(p.status)){modal('다시 만날 약속','먼저 미겔과 약속을 나누는 이야기를 진행해 주세요.');return;}
+ if(d.promiseRenewals>=2){modal('다시 만날 약속','이번 이야기에서 제안할 수 있는 약속은 모두 사용했습니다.');return;}
+ if(v18Data().promise&&v18Data().promise.status==='accepted'){modal('다시 만날 약속','이미 기다리고 있는 약속이 있습니다.');return;}
+ if(state.day>=30){modal('다시 만날 약속','이번 연회에서는 더 이상 약속을 잡을 수 없습니다.');return;}
+ v18Scene('v20renew','다니엘 레온하르트','지난 약속을 떠올린 다니엘은 잠시 말을 고른다. 약속을 다시 청하는 일이 상대에게 부담이 되지는 않을까.\n\n그는 먼저 자신의 마음을 다잡았다.',[
+ {text:'다음 날 테라스에서 다시 뵐 수 있는지 정중히 여쭙는다.',next:'explore',v20Renew:true,effects:{trust:1,risk:1}},
+ {text:'지금은 더 청하지 않고 기다린다.',next:'explore',effects:{resolve:1}}
+ ]);render();
+}
+function v20AlexEncounter(loc){
+ const d=v20Data(),t=socialProgress().alexTension,dayKey=state.day+'_'+loc;
+ if(t<3||d.alexScenes[dayKey])return false;
+ d.alexScenes[dayKey]=true;
+ const text=t>=8?'알렉이 다니엘을 바라보았다. 형의 시선은 오래 머물지 않았지만, 다니엘은 스스로 무언가를 들킨 듯한 기분에 사로잡혔다.':'알렉과 마주친 다니엘은 먼저 자세를 바로잡았다. 형에게 무슨 말을 해야 할지 잠시 망설였다.';
+ return v18Scene('v20alex','알렉스 레온하르트',text+'\n\n“무도회는 잘 즐기고 있느냐?”\n\n다니엘은 평범한 안부에도 쉽게 대답하지 못했다.',[
+ {text:'“예, 형님. 별일 없습니다.”',next:'explore',v20Alex:'avoid',effects:{resolve:1}},
+ {text:'“……그저 제 행동을 돌아보고 있었습니다.”',next:'explore',v20Alex:'confess',effects:{trust:1,risk:1}},
+ {text:'먼저 형님의 안부를 여쭙는다.',next:'explore',v20Alex:'courtesy',effects:{reputation:1}}
+ ]);
+}
+function v20DiaryText(){
+ const a=state.stats.affection,t=state.stats.trust,x=socialProgress().alexTension,e=v18Data().emotion+v19Data().feelings;
+ const opening=x>=8?'형님의 얼굴을 마주한 뒤로 마음이 편치 않았다.':a>=8?'그녀와 나눈 짧은 인사가 밤새 마음에 남았다.':'황궁의 불빛은 환했지만, 나는 자꾸만 말끝을 흐렸다.';
+ const middle=t>=6?'상대가 내 말을 믿어 주기를 바라면서도, 먼저 신뢰할 만한 사람이 되어야 한다고 생각했다.':e>=3?'이 마음을 이름 붙여도 되는지 아직 모르겠다.':e<=-3?'내가 바라는 것이 무엇인지 스스로도 외면하고 있었다.':'사소한 일에도 너무 많은 뜻을 부여하고 있는 것은 아닐까.';
+ return opening+'\n\n'+middle+'\n\n오늘은 누군가의 소문보다 내가 직접 보고 들은 것을 기억하기로 했다.';
+}
+function v20Diary(){
+ const d=v20Data(),entry={day:state.day,turn:exploration().turn,text:v20DiaryText()};
+ if(!d.diary.some(x=>x.day===entry.day&&x.turn===entry.turn)){d.diary.push(entry);v20Record('diary_'+entry.day+'_'+entry.turn,'다니엘의 감정 일지 · DAY '+entry.day,entry.text,'관계');}
+ modal('다니엘의 감정 일지',d.diary.slice(-12).map(x=>'DAY '+x.day+' · '+CLOCK_LABELS[Math.min(x.turn,7)]+'\n'+x.text).join('\n\n────────\n\n'));
+}
+function v20Board(){
+ const d=v20Data();const errands=Object.entries(d.errands).map(([loc,x])=>V20_ERRANDS[loc].title+' · '+(x.status==='help'?'도움 완료':x.status==='decline'?'정중히 사양':'대답 대기'));
+ const rumors=Object.entries(d.rumorChecks).map(([key,x])=>key.split('_')[0]+' · '+(x.result==='true'?'사실 확인':x.result==='false'?'사실과 다름':'일부만 확인'));
+ modal('황궁 조사와 부탁','[확인한 소문]\n'+(rumors.join('\n')||'아직 없습니다.')+'\n\n[개별 부탁]\n'+(errands.join('\n')||'친밀도가 높은 NPC에게 부탁을 받을 수 있습니다.')+'\n\n소문의 파급 '+d.rumorImpact+' · 약속 재제안 '+d.promiseRenewals+'/2');
+}
+
+
+// v21 — narrative-only continuity, all state additive to the original save.
+const V21_LOCATIONS={hall:'대연회장',corridor:'회랑',terrace:'테라스',drawing:'응접실',garden:'장미 정원'};
+const V21_FOLLOWUPS={
+ hall:'악단 보조는 새로 정리한 순서표를 보여 주었다. “그날 도와주신 덕분에 연주를 무사히 마쳤습니다.” 다니엘은 별일 아니었다고 답했지만, 상대는 정중히 고개를 숙였다.',
+ corridor:'견습 시종은 멀리서도 다니엘을 알아보았다. “지난번 안내해 주신 길이 맞았습니다.” 작은 안도감이 두 사람 사이에 남았다.',
+ terrace:'화분 담당 시종은 고정된 받침대를 가리켰다. “그 뒤로는 바람이 불어도 괜찮습니다.” 다니엘은 화분이 넘어지지 않은 것을 확인했다.',
+ drawing:'차 담당 시종은 차분히 잔을 정리하고 있었다. “덕분에 손님들을 오래 기다리게 하지 않았습니다.” 다니엘은 미소 대신 고개를 숙였다.',
+ garden:'정원사는 말끔해진 길을 보여 주었다. “덕분에 손님들이 꽃을 가까이 볼 수 있게 됐습니다.” 다니엘은 노란 장미 앞에서 잠시 발걸음을 늦췄다.'
+};
+const V21_RUMOR_ECHO={
+ roses:'노란 장미를 찾은 사람이 미겔이었다는 추측은 꽃 장식 담당 시종의 방문이었다는 확인 뒤 조금씩 잦아들었다.',
+ terrace:'테라스의 비밀스러운 만남이라는 이야기는 악단의 일정 확인이었다는 말로 바뀌었다.',
+ brothers:'레온하르트 형제에 관한 이야기는 단순한 출입 순서였다는 설명에도 쉽게 사라지지 않았다. 다니엘은 대꾸를 삼켰다.',
+ music:'악단의 순서 변경 이유가 악기 고장이었다는 사실이 전해지자 사람들은 공연 준비의 분주함을 이야기했다.',
+ tea:'남겨진 찻잔의 주인은 여전히 알려지지 않았다. 시종은 그 손님이 급히 다른 행사로 갔다고만 설명했다.'
+};
+function v21Data(){
+ if(!state.v21||typeof state.v21!=='object')state.v21={followups:{},echoes:{},promisePlaces:[],moodHistory:[],bondScenes:{}};
+ const d=state.v21;d.followups||={};d.echoes||={};d.promisePlaces||=[];d.moodHistory||=[];d.bondScenes||={};return d;
+}
+function v21Record(id,title,body,category='기타'){v18Remember('v21_'+id,title,body,category);}
+function v21NpcFollowup(loc){
+ const q=v20Data().errands[loc],d=v21Data(),npc=v19Data().npc[loc];
+ if(!q||q.status!=='help'||state.day<=q.offeredDay||d.followups[loc]||!npc)return false;
+ d.followups[loc]={day:state.day};npc.rapport=Math.min(10,(npc.rapport||0)+1);
+ const body=V21_FOLLOWUPS[loc];v21Record('followup_'+loc,'부탁의 후일담 · '+V21_LOCATIONS[loc],body,'의뢰');
+ return v18Scene('v21followup',V19_NPC_PROFILES[loc].name,body,[
+  {text:'“도움이 되었다니 다행입니다.”',next:'explore',effects:{reputation:1,trust:1}},
+  {text:'“그 뒤로 불편한 일은 없으셨습니까?”',next:'explore',effects:{resolve:1}}
+ ]);
+}
+function v21RumorEcho(loc){
+ const d=v21Data(),checks=v20Data().rumorChecks;
+ const item=Object.entries(checks).find(([key,val])=>{
+  const id=key.split('_')[0];return V20_RUMOR_FACTS[id]&&V20_RUMOR_FACTS[id].place!==loc&&!d.echoes[key]&&state.day>val.day;
+ });
+ if(!item)return false;
+ const [key,val]=item,id=key.split('_')[0];d.echoes[key]={day:state.day,place:loc};
+ const body='황궁의 다른 장소에도 먼저 들었던 소문이 흘러들어 왔다.\n\n'+V21_RUMOR_ECHO[id]+'\n\n다니엘은 자신이 확인한 사실과 다른 사람의 추측이 섞이지 않도록 말을 골랐다.';
+ v21Record('echo_'+key,'소문의 여파 · '+V21_LOCATIONS[loc],body,'기타');
+ return v18Scene('v21echo','SYSTEM',body,[
+  {text:'확인한 사실만 조심스럽게 전한다.',next:'explore',effects:{reputation:1,resolve:1},v21Echo:'careful'},
+  {text:'섣불리 말을 보태지 않는다.',next:'explore',effects:{trust:1},v21Echo:'silent'}
+ ]);
+}
+function v21PromiseMenu(){
+ const p=v18Data().promise,d=v20Data();
+ if(!p||!['met','missed','declined'].includes(p.status)){modal('약속 장소를 고르기','이전에 나누었던 약속이 마무리된 뒤에 다시 제안할 수 있습니다.');return;}
+ if(d.promiseRenewals>=2||state.day>=30){modal('약속 장소를 고르기','이번 연회에서 더 청할 수 있는 약속이 없습니다.');return;}
+ const wrap=document.createElement('div');const info=document.createElement('p');info.textContent='다니엘은 상대의 편의를 먼저 생각했다. 어느 장소가 무례하지 않을까. 다음 날 같은 시간대에 그곳으로 가야 한다.';wrap.append(info);
+ for(const [loc,label] of [['terrace','테라스'],['drawing','응접실'],['garden','장미 정원']]){
+  const b=document.createElement('button');b.textContent='✧ 다음 날 · '+label+'에서 인사 청하기';b.onclick=()=>{
+   d.promiseRenewals++;v18Data().promise={day:state.day+1,loc,turn:3,status:'accepted'};
+   v19Data().promiseAfter=null;v21Data().promisePlaces.push({day:state.day+1,loc});
+   const body='다니엘은 '+label+'에서 다시 인사를 드릴 수 있는지 정중히 여쭈었다. 상대의 답을 강요하지 않겠다는 생각으로 목소리를 낮췄다.';
+   v21Record('promise_'+state.day+'_'+loc,'다시 청한 약속 · '+label,body,'관계');
+   closeModal();modal('약속을 청했습니다','DAY '+(state.day+1)+' · '+label+' · 네 번째 이동 시간대에 방문하세요.\n\n'+body);
+  };wrap.append(b);
+ }
+ modal('미겔과의 약속 장소 선택',wrap);
+}
+function v21MoodSnapshot(){
+ const d=v21Data(),s=state.stats,x=socialProgress().alexTension,e=v18Data().emotion+v19Data().feelings;
+ const mood=x>=8?'죄책감':s.affection>=8&&s.trust>=6?'조심스러운 기대':e<=-3?'망설임':e>=3?'설렘':'긴장';
+ const body=mood==='죄책감'?'형님께 어떤 얼굴로 인사해야 할까. 다니엘은 손끝에 힘을 주었다.':mood==='조심스러운 기대'?'그녀가 자신의 발걸음을 알아보았다는 사실이 오래 마음에 남았다.':mood==='망설임'?'말을 꺼냈다가 상대를 곤란하게 만들지는 않을까.':mood==='설렘'?'기대해서는 안 된다는 생각과 다음 인사를 기다리는 마음이 엇갈렸다.':'오늘도 그는 예복의 소매를 한 번 더 바로잡았다.';
+ const entry={day:state.day,turn:exploration().turn,mood,text:body};
+ if(!d.moodHistory.some(a=>a.day===entry.day&&a.turn===entry.turn)){d.moodHistory.push(entry);v21Record('mood_'+entry.day+'_'+entry.turn,'감정의 변화 · DAY '+entry.day,body,'관계');}
+ modal('다니엘의 감정 변화',d.moodHistory.slice(-18).map(a=>'DAY '+a.day+' · '+CLOCK_LABELS[Math.min(a.turn,7)]+' · '+a.mood+'\n'+a.text).join('\n\n────────\n\n'));
+}
+function v21BondScene(loc){
+ if(!['terrace','drawing','garden'].includes(loc))return false;
+ const d=v21Data(),a=state.stats.affection,t=state.stats.trust,meet=socialProgress().miguelMeetings;
+ const tier=a>=12&&t>=10&&meet>=4?'trust':a>=6&&meet>=3?'warm':null;
+ if(!tier||d.bondScenes[tier])return false;
+ d.bondScenes[tier]={day:state.day};
+ const body=tier==='trust'?'미겔은 다니엘이 인사하기 전에 고개를 돌렸다. “레온하르트 경. 발걸음이 익숙해졌습니다.”\n\n그녀는 한 걸음 거리를 두었다. 다니엘은 그 신중함이 오히려 고마웠다.':'미겔은 그의 옷깃에 시선을 두었다. “오늘은 장식이 조금 다르군요.”\n\n그녀는 사람을 구별할 때 얼굴보다 옷차림과 걸음걸이를 살핀다고 했다. 다니엘은 뜻밖의 관찰에 말을 잃었다.';
+ v21Record('bond_'+tier,'미겔과의 대화 · '+(tier==='trust'?'익숙한 발걸음':'옷깃의 장식'),body,'관계');
+ return v18Scene('v21bond','미겔 코트리먼',body,[
+  {text:'“……기억해 주셨군요. 감사합니다.”',next:'explore',effects:{trust:2,affection:1}},
+  {text:'“불편하시지 않도록 조심하겠습니다.”',next:'explore',effects:{trust:1,resolve:1}}
+ ]);
+}
+function v21Board(){
+ const d=v21Data(),p=v18Data().promise;
+ modal('황궁의 후일담과 변화','[부탁 후일담]\n'+(Object.keys(d.followups).map(k=>V21_LOCATIONS[k]).join(' · ')||'아직 없습니다.')+'\n\n[소문 연쇄 반응]\n'+Object.keys(d.echoes).length+'건\n\n[약속]\n'+(p?'DAY '+p.day+' · '+(V21_LOCATIONS[p.loc]||'미정')+' · '+p.status:'아직 없습니다.')+'\n\n[감정 변화 기록]\n'+d.moodHistory.length+'건');
+}
+
+
+// v22: story extensions. All additions are optional, persisted under state.v22.
+const V22_PLACE_SCENES={
+ terrace:{title:'달빛 아래의 거리',text:'테라스의 난간에는 달빛이 길게 걸렸다. 미겔은 정중히 고개를 숙였다. “레온하르트 경.”\n\n다니엘은 바람이 그녀의 숄을 스치는 것을 보았다. 가까이 다가가도 될지, 묻는 편이 나을지 한참 망설였다.',ask:'“……바람이 차갑지는 않으십니까?”'},
+ drawing:{title:'찻잔 사이의 침묵',text:'응접실에는 식어 가는 차 향이 남았다. 미겔은 맞은편 자리를 가리키되, 다니엘이 먼저 앉을 때까지 기다렸다.\n\n그는 찻잔을 쥐었다 놓았다. 평범한 안부를 묻는 일이 이렇게 어려울 줄은 몰랐다.',ask:'“차는 입에 맞으십니까?”'},
+ garden:{title:'장미 사이의 발걸음',text:'장미 정원에는 노란 꽃잎이 드문드문 떨어져 있었다. 미겔은 다니엘의 구두 소리를 듣고 걸음을 멈췄다.\n\n“걸음이 익숙하군요.” 짧은 말이었지만 다니엘은 대답을 고르느라 한 박자 늦었다.',ask:'“꽃을 좋아하십니까?”'}
+};
+const V22_NPC_SCENES={
+ hall:{name:'악단 보조',text:'악단 보조는 다니엘을 알아보고 악보의 가장자리를 접어 보였다. “지난번에 도와주신 덕분에 연주가 무사했습니다. 오늘은 제가 경의 길을 안내해 드릴까요?”'},
+ corridor:{name:'견습 시종',text:'견습 시종은 멀리서부터 허리를 숙였다. “이제 복도에서 길을 잃지는 않습니다. 경께서 알려주신 대로 표식을 살폈거든요.”'},
+ terrace:{name:'화분 담당 시종',text:'화분 담당 시종은 묶인 끈을 가리켰다. “바람이 다시 불어도 넘어지지 않을 겁니다. 경의 도움이 오래 남았군요.”'},
+ drawing:{name:'차 담당 시종',text:'차 담당 시종은 빈 찻잔을 거두며 웃었다. “경께서 거들어 주신 뒤로는 손님들 앞에서 덜 떨립니다.”'},
+ garden:{name:'정원사',text:'정원사는 다니엘에게 꽃잎 하나를 내밀었다. “아무것도 아닌 일 같아도, 길을 정리해 두면 누군가는 편히 걸을 수 있지요.”'}
+};
+function v22Data(){
+ if(!state.v22||typeof state.v22!=='object')state.v22={placeMemories:{},npcDeep:{},rumorResponses:{},alexConflict:{},diaryComparisons:[]};
+ const d=state.v22;d.placeMemories||={};d.npcDeep||={};d.rumorResponses||={};d.alexConflict||={};d.diaryComparisons||=[];return d;
+}
+function v22Record(id,title,body,category='기타'){v18Remember('v22_'+id,title,body,category);}
+function v22PromiseScene(loc){
+ const d=v22Data(),p=v18Data().promise,scene=V22_PLACE_SCENES[loc];
+ if(!scene||!p||p.status!=='met'||p.loc!==loc||p.day!==state.day||d.placeMemories[state.day+'_'+loc])return false;
+ d.placeMemories[state.day+'_'+loc]=true;
+ const text=scene.text+'\n\n형의 약혼녀 앞이라는 사실을 다니엘은 잊지 않았다.';
+ v22Record('promise_'+state.day+'_'+loc,'약속의 장소 · '+scene.title,text,'관계');
+ return v18Scene('v22promise','미겔 코트리먼',text,[
+ {text:scene.ask,next:'explore',effects:{trust:2},v22Choice:'courtesy'},
+ {text:'“시간을 내 주셔서 감사합니다.”',next:'explore',effects:{reputation:1,resolve:1},v22Choice:'gratitude'},
+ {text:'형님과의 약속을 떠올리고 말을 아낀다.',next:'explore',effects:{resolve:2},v22Choice:'restraint'}]);
+}
+function v22NpcDeep(loc){
+ const npc=v19Data().npc[loc],d=v22Data(),scene=V22_NPC_SCENES[loc];
+ if(!scene||!npc||(npc.rapport||0)<4||d.npcDeep[loc])return false;
+ d.npcDeep[loc]={day:state.day};
+ v22Record('npc_'+loc,'황궁의 익숙한 얼굴 · '+scene.name,scene.text,'관계');
+ return v18Scene('v22npc',scene.name,scene.text,[
+ {text:'“그렇게 말씀해 주시니 기쁩니다.”',next:'explore',effects:{reputation:2},v22Npc:loc,v22NpcMode:'warm'},
+ {text:'“앞으로도 조심해서 일하십시오.”',next:'explore',effects:{resolve:1},v22Npc:loc,v22NpcMode:'reserved'}]);
+}
+function v22RumorResponse(){
+ const d=v22Data(),checks=v20Data().rumorChecks;
+ const item=Object.entries(checks).find(([key,val])=>v21Data().echoes[key]&&!d.rumorResponses[key]);
+ if(!item){modal('소문 대응','아직 다른 장소로 전해진 소문이 없습니다. 먼저 소문을 확인하고 다음 날의 반응을 살펴보세요.');return;}
+ const [key,val]=item,id=key.split('_')[0],fact=V20_RUMOR_FACTS[id];
+ const text='이미 다른 장소로 번진 소문을 다시 들었다. '+(fact?.fact||'누군가의 짐작과 사실이 뒤섞여 있었다.')+'\n\n다니엘은 자신이 확인한 만큼만 책임질 수 있다는 사실을 떠올렸다.';
+ return v18Scene('v22rumor','SYSTEM',text,[
+ {text:'확인된 내용만 바로잡는다.',next:'explore',effects:{reputation:2,resolve:1},v22Rumor:key,v22RumorMode:'correct'},
+ {text:'당사자의 사정을 위해 말을 아낀다.',next:'explore',effects:{trust:1},v22Rumor:key,v22RumorMode:'protect'},
+ {text:'그 자리를 떠나 더는 관여하지 않는다.',next:'explore',effects:{resolve:1},v22Rumor:key,v22RumorMode:'leave'}]);
+}
+function v22AlexConflict(loc){
+ const tension=socialProgress().alexTension,d=v22Data();
+ const tier=tension>=10?'high':tension>=5?'medium':null;
+ if(!tier||d.alexConflict[tier])return false;
+ d.alexConflict[tier]={day:state.day,loc};
+ const text=tier==='high'?'알렉이 다니엘을 불렀다. “요즘 무도회장을 자주 찾는구나.”\n\n다니엘은 시선을 피하지 않으려 애썼다. 형의 약혼녀를 찾아다녔다는 말은 입 밖에 내기 어려웠다.':'알렉은 다니엘의 굳은 어깨를 보았다. “무슨 걱정이라도 있느냐?”\n\n다니엘은 괜찮다는 말을 하려다 잠시 멈췄다. 형은 아직 아무것도 묻지 않았다.';
+ v22Record('alex_'+tier,'형 앞에서 · '+(tier==='high'?'숨길 수 없는 망설임':'말하지 못한 걱정'),text,'관계');
+ return v18Scene('v22alex','알렉 레온하르트',text,[
+ {text:'“아닙니다, 형님. 걱정 끼쳐 드려 죄송합니다.”',next:'explore',effects:{reputation:1},v22Alex:'apologize'},
+ {text:'“제가 제 마음을 잘 모르겠습니다.”',next:'explore',effects:{resolve:2,risk:1},v22Alex:'hesitate'},
+ {text:'예를 갖추고 대화를 마친다.',next:'explore',effects:{resolve:1},v22Alex:'leave'}]);
+}
+function v22DiaryCompare(){
+ const snapshots=v21Data().moodHistory,diary=v20Data().diary;
+ const byDay=new Map();
+ for(const a of snapshots){if(!byDay.has(a.day))byDay.set(a.day,[]);byDay.get(a.day).push(a);}
+ const days=[...byDay.keys()].sort((a,b)=>a-b);
+ if(days.length<2){modal('감정 일지 · 날짜별 비교','서로 다른 날짜에 탐색 화면의 ‘감정 변화 기록하기’를 사용하면 감정을 비교할 수 있습니다. 현재 기록된 날짜: '+days.length+'일');return;}
+ const last=days.slice(-2),a=byDay.get(last[0]).at(-1),b=byDay.get(last[1]).at(-1);
+ const text='DAY '+a.day+' · '+a.mood+'\n'+a.text+'\n\n→ DAY '+b.day+' · '+b.mood+'\n'+b.text+'\n\n'+(a.mood===b.mood?'감정의 이름은 같았지만, 하루가 더 흘렀다.':'어제와 오늘, 마음에 붙일 수 있는 이름이 달라졌다.');
+ const d=v22Data(),key=a.day+'_'+b.day;
+ if(!d.diaryComparisons.some(x=>x.key===key)){d.diaryComparisons.push({key,day:state.day,text});v22Record('diary_'+key,'감정의 간격 · DAY '+a.day+' → '+b.day,text,'관계');}
+ modal('다니엘의 감정 일지 · 날짜별 비교',text+'\n\n기존 감정 일지 항목 '+diary.length+'건 · 비교 기록 '+d.diaryComparisons.length+'건');
+}
+function v22Board(){
+ const d=v22Data();modal('v22 황궁 관계 수첩','약속 장소별 회상 '+Object.keys(d.placeMemories).length+'건\nNPC 심화 인연 '+Object.keys(d.npcDeep).length+'건\n소문 대응 '+Object.keys(d.rumorResponses).length+'건\n알렉 갈등 '+Object.keys(d.alexConflict).length+'단계\n감정 일지 비교 '+d.diaryComparisons.length+'건');
+}
+
 function moveTo(loc){
  const ex=exploration();if(ex.turn>=7){state.node='explore_timeout';render();return;}
  const turn=ex.turn;ex.turn++;ex.visited.push(loc);state.history.push('explore');
- if(v18PromiseEncounter(loc,turn)){render();return;}
+ if(v18PromiseEncounter(loc,turn)){v22PromiseScene(loc);render();return;}
  v18CheckMissedPromise();
  const miguelPlace=v16Route(state.day)[turn];
  const atmosphere=v17Atmosphere(loc,turn);
  const alexPlace=scheduleFor(ALEX_SCHEDULES,state.day)[turn];
  if(loc===miguelPlace&&loc===alexPlace){ex.found=true;markMiguelMeeting();markAlexMeeting(true);sharedEncounterV15();state.node='alex_miguel';}
- else if(loc===miguelPlace){ex.found=true;markMiguelMeeting();state.node=(loc==='hall'&&turn===0&&state.day===1)?'wine_accident':socialProgress().miguelMeetings>1?'explore_repeat_v14':'explore_found';if(state.node==='explore_repeat_v14')repeatedMiguelEvent();if(state.node!=='wine_accident'&&!v18OfferPromise()&&!v17BondScene())v16RelationshipEvent(); }
- else if(loc===alexPlace){markAlexMeeting();state.node='explore_alex';if(socialProgress().alexTension>=4)v16AlexTension();}
- else if(!v19PromiseFollowup(loc)&&!v18SerialEvent(loc)&&!v16QuestEvent(loc)&&!questEvent(loc)&&!specialDayEvent(loc)&&!v19NpcEncounter(loc)&&!v19RumorEncounter(loc)&&!v18NpcEvent(loc,turn)){ambientScene(loc);}
+ else if(loc===miguelPlace){ex.found=true;markMiguelMeeting();state.node=(loc==='hall'&&turn===0&&state.day===1)?'wine_accident':socialProgress().miguelMeetings>1?'explore_repeat_v14':'explore_found';if(state.node==='explore_repeat_v14')repeatedMiguelEvent();if(state.node!=='wine_accident'&&!v18OfferPromise()&&!v17BondScene())v16RelationshipEvent(); if(socialProgress().miguelMeetings>=3)v21BondScene(loc);}
+ else if(loc===alexPlace){markAlexMeeting();state.node='explore_alex';if(!v22AlexConflict(loc)&&!v20AlexEncounter(loc)&&socialProgress().alexTension>=4)v16AlexTension();}
+ else if(!v22NpcDeep(loc)&&!v19PromiseFollowup(loc)&&!v21NpcFollowup(loc)&&!v21RumorEcho(loc)&&!v20ErrandEvent(loc)&&!v18SerialEvent(loc)&&!v16QuestEvent(loc)&&!questEvent(loc)&&!specialDayEvent(loc)&&!v19NpcEncounter(loc)&&!v19RumorEncounter(loc)&&!v18NpcEvent(loc,turn)){ambientScene(loc);}
  if(state.node==='explore_v18_event')NODES.explore_v18_event.text=atmosphere+'\n\n'+NODES.explore_v18_event.text;
  if(state.node==='explore_ambient'&&NODES.explore_ambient)NODES.explore_ambient.text=atmosphere+'\n\n'+NODES.explore_ambient.text;
  else if(state.node==='explore_v16_quest'||state.node==='explore_quest_v15'||state.node==='explore_special_v14')NODES[state.node].text=atmosphere+'\n\n'+NODES[state.node].text;
@@ -511,7 +758,7 @@ function moveTo(loc){
 function renderExplore(){
  const ex=exploration();const now=CLOCK_LABELS[Math.min(ex.turn,7)];
  $('line').textContent='DAY '+state.day+' · 황궁 · '+now+' · 남은 이동 '+Math.max(0,7-ex.turn)+' / 7\n\n황궁에는 저마다의 밤을 보내는 사람들이 있습니다. 어디로 향하시겠습니까?';
- $('nextBtn').classList.add('hidden');const clueBtn=document.createElement('button');clueBtn.textContent='✦ 주변의 소문과 흔적을 살핀다 (30분)';clueBtn.onclick=clueSearch;$('choices').append(clueBtn);const inferBtn=document.createElement('button');inferBtn.textContent='✧ 수집한 소문으로 동선 추리';inferBtn.onclick=inferenceV15;$('choices').append(inferBtn);const questBtn=document.createElement('button');const quest=questProgress();questBtn.textContent='♫ 악보 사건: '+(quest.done?'완료':['연회장에서 시작','회랑에서 악보 찾기','응접실에 전달'][quest.step]);questBtn.onclick=()=>modal('연속 사건 · 사라진 악보',quest.done?'악보를 무사히 돌려주었습니다.':'다음 목표: '+['대연회장','대리석 회랑','응접실'][quest.step]);$('choices').append(questBtn);const v16Btn=document.createElement('button');v16Btn.textContent='✦ 황궁 의뢰 수첩 (3개 연속 사건)';v16Btn.onclick=v16QuestBoard;$('choices').append(v16Btn);const journalBtn=document.createElement('button');journalBtn.textContent='✧ 수집한 단서 확인 ('+(ex.clues||[]).length+')';journalBtn.onclick=()=>modal('탐색 수첩',(ex.clues||[]).length?(ex.clues||[]).join('\n\n'):'아직 기록한 단서가 없습니다.');$('choices').append(journalBtn);const v18Btn=document.createElement('button');v18Btn.textContent='✧ 황궁의 작은 기록 · 약속과 연속 사건';v18Btn.onclick=v18Board;$('choices').append(v18Btn);const v19Btn=document.createElement('button');v19Btn.textContent='✧ 황궁 인연과 소문 수첩';v19Btn.onclick=v19Board;$('choices').append(v19Btn);const thoughtBtn=document.createElement('button');thoughtBtn.textContent='✦ 잠시 생각에 잠긴다';thoughtBtn.onclick=v17Thought;$('choices').append(thoughtBtn);LOCATIONS.forEach(loc=>{const b=document.createElement('button');b.textContent='✧ '+loc.name+(ex.visited.includes(loc.id)?' · 방문함':'');b.title=loc.desc;b.onclick=()=>moveTo(loc.id);$('choices').append(b);});
+ $('nextBtn').classList.add('hidden');const clueBtn=document.createElement('button');clueBtn.textContent='✦ 주변의 소문과 흔적을 살핀다 (30분)';clueBtn.onclick=clueSearch;$('choices').append(clueBtn);const inferBtn=document.createElement('button');inferBtn.textContent='✧ 수집한 소문으로 동선 추리';inferBtn.onclick=inferenceV15;$('choices').append(inferBtn);const questBtn=document.createElement('button');const quest=questProgress();questBtn.textContent='♫ 악보 사건: '+(quest.done?'완료':['연회장에서 시작','회랑에서 악보 찾기','응접실에 전달'][quest.step]);questBtn.onclick=()=>modal('연속 사건 · 사라진 악보',quest.done?'악보를 무사히 돌려주었습니다.':'다음 목표: '+['대연회장','대리석 회랑','응접실'][quest.step]);$('choices').append(questBtn);const v16Btn=document.createElement('button');v16Btn.textContent='✦ 황궁 의뢰 수첩 (3개 연속 사건)';v16Btn.onclick=v16QuestBoard;$('choices').append(v16Btn);const journalBtn=document.createElement('button');journalBtn.textContent='✧ 수집한 단서 확인 ('+(ex.clues||[]).length+')';journalBtn.onclick=()=>modal('탐색 수첩',(ex.clues||[]).length?(ex.clues||[]).join('\n\n'):'아직 기록한 단서가 없습니다.');$('choices').append(journalBtn);const v18Btn=document.createElement('button');v18Btn.textContent='✧ 황궁의 작은 기록 · 약속과 연속 사건';v18Btn.onclick=v18Board;$('choices').append(v18Btn);const v19Btn=document.createElement('button');v19Btn.textContent='✧ 황궁 인연과 소문 수첩';v19Btn.onclick=v19Board;$('choices').append(v19Btn);const verifyBtn=document.createElement('button');verifyBtn.textContent='✧ 들은 소문의 진위 확인 (30분)';verifyBtn.onclick=v20VerifyRumor;$('choices').append(verifyBtn);const errandBtn=document.createElement('button');errandBtn.textContent='✦ 황궁 조사·부탁 수첩';errandBtn.onclick=v20Board;$('choices').append(errandBtn);const renewBtn=document.createElement('button');renewBtn.textContent='✧ 미겔과의 약속을 다시 청할지 생각한다';renewBtn.onclick=v20PromiseRenew;$('choices').append(renewBtn);const diaryBtn=document.createElement('button');diaryBtn.textContent='✦ 다니엘의 감정 일지';diaryBtn.onclick=v20Diary;$('choices').append(diaryBtn);const v21BoardBtn=document.createElement('button');v21BoardBtn.textContent='✧ 후일담·소문·약속 수첩';v21BoardBtn.onclick=v21Board;$('choices').append(v21BoardBtn);const v21PlaceBtn=document.createElement('button');v21PlaceBtn.textContent='✧ 미겔과의 다음 약속 장소 고르기';v21PlaceBtn.onclick=v21PromiseMenu;$('choices').append(v21PlaceBtn);const v21MoodBtn=document.createElement('button');v21MoodBtn.textContent='✦ 감정 변화 기록하기';v21MoodBtn.onclick=v21MoodSnapshot;$('choices').append(v21MoodBtn);const v22Btn=document.createElement('button');v22Btn.textContent='✧ 황궁의 인연 · v22 관계 수첩';v22Btn.onclick=v22Board;$('choices').append(v22Btn);const v22RumorBtn=document.createElement('button');v22RumorBtn.textContent='✦ 번진 소문에 어떻게 대응할지 생각한다';v22RumorBtn.onclick=()=>{if(v22RumorResponse())render();};$('choices').append(v22RumorBtn);const v22DiaryBtn=document.createElement('button');v22DiaryBtn.textContent='✧ 날짜별 감정 일지 비교';v22DiaryBtn.onclick=v22DiaryCompare;$('choices').append(v22DiaryBtn);const thoughtBtn=document.createElement('button');thoughtBtn.textContent='✦ 잠시 생각에 잠긴다';thoughtBtn.onclick=v17Thought;$('choices').append(thoughtBtn);LOCATIONS.forEach(loc=>{const b=document.createElement('button');b.textContent='✧ '+loc.name+(ex.visited.includes(loc.id)?' · 방문함':'');b.title=loc.desc;b.onclick=()=>moveTo(loc.id);$('choices').append(b);});
 }
 
 function renderStage(node){
@@ -525,7 +772,7 @@ function renderStage(node){
  /daniel|ball_/.test(id)||node.speaker==='다니엘 레온하르트'
  ?'레온하르트 백작가 · 막내아들':'세 개의 달이 떠오르는 밤';
 }
-function render(){const node=NODES[state.node]||NODES.intro;renderStage(node);$('speaker').textContent=node.speaker;$('line').textContent=node.text;$('day').textContent='DAY '+state.day;$('chapter').textContent=node.chapter||'PROLOGUE';$('choices').replaceChildren();$('nextBtn').classList.toggle('hidden',!!node.choices);if(node.explore){renderExplore();return;}(node.choices||[]).forEach(choice=>{const b=document.createElement('button');b.textContent='✧ '+choice.text;b.onclick=()=>{if(choice.action==='home'){show('home');return;}if(choice.action==='restartExplore'){resetNight();state.node='explore';render();return;}if(choice.action==='nextDay'){nextDay();return;}if(choice.reset)state=fresh();else{state.history.push(state.node);for(const [k,v] of Object.entries(choice.effects||{}))if(k in state.stats)state.stats[k]=Math.max(0,Math.min(100,state.stats[k]+v));}if(choice.v16Quest){if(choice.v17Ending)v17QuestEnding(choice.v16Quest,choice.v17Ending==='help'?'finish_help':'finish_quiet');const q=v16Data().quests[choice.v16Quest];if(q){if(choice.v16Mode==='advance'){q.step=Math.min(2,q.step+1);q.choice='accept';}else if(choice.v16Mode==='decline'){q.choice='decline';}else if(choice.v16Mode==='finish'){q.done=true;v16Data().memories.push({id:'quest_'+choice.v16Quest,title:V16_QUESTS.find(x=>x.id===choice.v16Quest)?.title||'황궁 사건',text:'황궁의 작은 의뢰를 해결했다.',day:state.day});}}}if(choice.v18Emotion)v18Data().emotion=Math.max(-10,Math.min(10,v18Data().emotion+choice.v18Emotion));if(choice.v19Feeling)v19Data().feelings=Math.max(-10,Math.min(10,v19Data().feelings+choice.v19Feeling));if(choice.v19Npc){const npc=v19Data().npc[choice.v19Npc];if(npc){npc.rapport=Math.min(10,(npc.rapport||0)+(choice.v19Rapport||0));if(npc.rapport===2)v19Record('npc_'+choice.v19Npc,'황궁의 인연 · '+V19_NPC_PROFILES[choice.v19Npc].name,V19_NPC_PROFILES[choice.v19Npc].warm,'관계');}}if(choice.v19Rumor){const r=v19Data().rumors.find(x=>x.id===choice.v19Rumor&&x.day===state.day);if(r)r.verified=true;}if(choice.v18Promise){v18Data().promise=choice.v18Promise==='accept'?{day:state.day+1,loc:'terrace',turn:3,status:'accepted'}:{day:state.day+1,status:'declined'};}if(choice.v18Serial!==undefined){const x=v18Data().serial[choice.v18Serial];if(x){if(choice.v18Mode==='advance'){if(x.stage===0)x.startDay=state.day;x.stage=Math.min(2,x.stage+1);}else if(choice.v18Mode.startsWith('finish')){x.done=true;const q=V18_SERIAL[choice.v18Serial];v18Remember('v18_serial_'+choice.v18Serial,q.title+' · 해결',q.end,'의뢰');}}}if(choice.questStep){const q=questProgress();q.step=Math.max(q.step,choice.questStep);if(q.step>=3){q.done=true;recordGallery('quest_done_v15');}}if(choice.ambientReply){NODES.explore_ambient_reply={speaker:'SYSTEM',text:choice.ambientReply,chapter:'CHAPTER 01',next:'explore'};}state.node=choice.v17Ending?'explore_v17_ending':choice.next;render();};$('choices').append(b);});}
+function render(){const node=NODES[state.node]||NODES.intro;renderStage(node);$('speaker').textContent=node.speaker;$('line').textContent=node.text;$('day').textContent='DAY '+state.day;$('chapter').textContent=node.chapter||'PROLOGUE';$('choices').replaceChildren();$('nextBtn').classList.toggle('hidden',!!node.choices);if(node.explore){renderExplore();return;}(node.choices||[]).forEach(choice=>{const b=document.createElement('button');b.textContent='✧ '+choice.text;b.onclick=()=>{if(choice.action==='home'){show('home');return;}if(choice.action==='restartExplore'){resetNight();state.node='explore';render();return;}if(choice.action==='nextDay'){nextDay();return;}if(choice.reset)state=fresh();else{state.history.push(state.node);for(const [k,v] of Object.entries(choice.effects||{}))if(k in state.stats)state.stats[k]=Math.max(0,Math.min(100,state.stats[k]+v));}if(choice.v16Quest){if(choice.v17Ending)v17QuestEnding(choice.v16Quest,choice.v17Ending==='help'?'finish_help':'finish_quiet');const q=v16Data().quests[choice.v16Quest];if(q){if(choice.v16Mode==='advance'){q.step=Math.min(2,q.step+1);q.choice='accept';}else if(choice.v16Mode==='decline'){q.choice='decline';}else if(choice.v16Mode==='finish'){q.done=true;v16Data().memories.push({id:'quest_'+choice.v16Quest,title:V16_QUESTS.find(x=>x.id===choice.v16Quest)?.title||'황궁 사건',text:'황궁의 작은 의뢰를 해결했다.',day:state.day});}}}if(choice.v22Rumor){const d=v22Data();d.rumorResponses[choice.v22Rumor]={day:state.day,mode:choice.v22RumorMode};const change=choice.v22RumorMode==='correct'?-2:choice.v22RumorMode==='protect'?-1:0;v20Data().rumorImpact=Math.max(-20,Math.min(20,v20Data().rumorImpact+change));v22Record('rumor_'+choice.v22Rumor,'소문에 대한 다니엘의 대응',NODES.explore_v18_event?.text||'소문을 조심스럽게 다루었다.','기타');}if(choice.v22Npc){v22Data().npcDeep[choice.v22Npc].choice=choice.v22NpcMode;const npc=v19Data().npc[choice.v22Npc];if(npc&&choice.v22NpcMode==='warm')npc.rapport=Math.min(10,(npc.rapport||0)+1);}if(choice.v22Alex){v22Data().lastAlexResponse=choice.v22Alex;if(choice.v22Alex==='hesitate')socialProgress().alexTension=Math.min(100,socialProgress().alexTension+1);}if(choice.v22Choice){v22Data().lastPromiseResponse=choice.v22Choice;}if(choice.v21Echo){v21Data().lastEchoChoice=choice.v21Echo;}if(choice.v20Errand){const q=v20Data().errands[choice.v20Errand];if(q){q.status=choice.v20ErrandMode;const def=V20_ERRANDS[choice.v20Errand];v20Record('errand_'+choice.v20Errand,def.title,choice.v20ErrandMode==='help'?def.good:'다니엘은 정중히 사양하고 자신의 일을 계속했다.','의뢰');if(choice.v20ErrandMode==='help'){const npc=v19Data().npc[choice.v20Errand];if(npc)npc.rapport=Math.min(10,npc.rapport+1);}}}if(choice.v20Renew){v20Data().promiseRenewals++;v18Data().promise={day:state.day+1,loc:'terrace',turn:3,status:'accepted'};v19Data().promiseAfter=null;v20Record('renew_'+state.day,'다시 청한 약속','다니엘은 다음 날 테라스에서 인사할 기회를 다시 청했다.','관계');}if(choice.v20Alex){const d=v20Data();d.lastAlexChoice=choice.v20Alex;if(choice.v20Alex==='confess')socialProgress().alexTension=Math.min(100,socialProgress().alexTension+1);v20Record('alex_'+state.day+'_'+exploration().turn,'형 앞에서의 대답',NODES.explore_v18_event?.text||'형과의 짧은 대화를 떠올렸다.','관계');}if(choice.v18Emotion)v18Data().emotion=Math.max(-10,Math.min(10,v18Data().emotion+choice.v18Emotion));if(choice.v19Feeling)v19Data().feelings=Math.max(-10,Math.min(10,v19Data().feelings+choice.v19Feeling));if(choice.v19Npc){const npc=v19Data().npc[choice.v19Npc];if(npc){npc.rapport=Math.min(10,(npc.rapport||0)+(choice.v19Rapport||0));if(npc.rapport===2)v19Record('npc_'+choice.v19Npc,'황궁의 인연 · '+V19_NPC_PROFILES[choice.v19Npc].name,V19_NPC_PROFILES[choice.v19Npc].warm,'관계');}}if(choice.v19Rumor){const r=v19Data().rumors.find(x=>x.id===choice.v19Rumor&&x.day===state.day);if(r)r.verified=true;}if(choice.v18Promise){v18Data().promise=choice.v18Promise==='accept'?{day:state.day+1,loc:'terrace',turn:3,status:'accepted'}:{day:state.day+1,status:'declined'};}if(choice.v18Serial!==undefined){const x=v18Data().serial[choice.v18Serial];if(x){if(choice.v18Mode==='advance'){if(x.stage===0)x.startDay=state.day;x.stage=Math.min(2,x.stage+1);}else if(choice.v18Mode.startsWith('finish')){x.done=true;const q=V18_SERIAL[choice.v18Serial];v18Remember('v18_serial_'+choice.v18Serial,q.title+' · 해결',q.end,'의뢰');}}}if(choice.questStep){const q=questProgress();q.step=Math.max(q.step,choice.questStep);if(q.step>=3){q.done=true;recordGallery('quest_done_v15');}}if(choice.ambientReply){NODES.explore_ambient_reply={speaker:'SYSTEM',text:choice.ambientReply,chapter:'CHAPTER 01',next:'explore'};}state.node=choice.v17Ending?'explore_v17_ending':choice.next;render();};$('choices').append(b);});}
 function fresh(){return{node:'intro',day:1,social:{miguelMeetings:0,alexTension:0},stats:{affection:0,trust:0,resolve:0,reputation:50,risk:0},history:[],exploration:{turn:0,clues:[],visited:[],found:false,sceneCounts:{}}};}
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...state,ambientSnapshot:['explore_ambient','explore_ambient_reply','explore_special_v14','explore_repeat_v14','explore_clue_v14','explore_quest_v15','explore_v16_quest','explore_v16_bond','explore_v16_alex','explore_v17_bond','explore_v17_thought','explore_v17_ending','explore_v18_event'].includes(state.node)?{scene:NODES.explore_ambient,reply:NODES.explore_ambient_reply,special:NODES.explore_special_v14,repeat:NODES.explore_repeat_v14,clue:NODES.explore_clue_v14,quest:NODES.explore_quest_v15,v16quest:NODES.explore_v16_quest,v16bond:NODES.explore_v16_bond,v16alex:NODES.explore_v16_alex,v17bond:NODES.explore_v17_bond,v17thought:NODES.explore_v17_thought,v17ending:NODES.explore_v17_ending,v18event:NODES.explore_v18_event}:null}));modal('저장 완료','현재 진행 상황을 이 브라우저에 저장했습니다.');}catch{modal('저장 실패','브라우저 저장 공간을 사용할 수 없습니다.');}}
 function load(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){modal('불러오기','저장된 진행 상황이 없습니다.');return;}const data=JSON.parse(raw);if(!data||(!['explore_ambient','explore_ambient_reply','explore_special_v14','explore_repeat_v14','explore_clue_v14','explore_quest_v15','explore_v16_quest','explore_v16_bond','explore_v16_alex','explore_v17_bond','explore_v17_thought','explore_v17_ending','explore_v18_event'].includes(data.node)&&!NODES[data.node])||!data.stats||typeof data.stats!=='object')throw Error('invalid');if(['explore_ambient','explore_ambient_reply','explore_special_v14','explore_repeat_v14','explore_clue_v14','explore_quest_v15','explore_v16_quest','explore_v16_bond','explore_v16_alex','explore_v17_bond','explore_v17_thought','explore_v17_ending','explore_v18_event'].includes(data.node)){const snap=data.ambientSnapshot||{};if(data.node==='explore_ambient'&&!snap.scene)throw Error('missing ambient');if(snap.scene)NODES.explore_ambient=snap.scene;if(snap.reply)NODES.explore_ambient_reply=snap.reply;if(snap.special)NODES.explore_special_v14=snap.special;if(snap.repeat)NODES.explore_repeat_v14=snap.repeat;if(snap.clue)NODES.explore_clue_v14=snap.clue;if(snap.quest)NODES.explore_quest_v15=snap.quest;if(snap.v16quest)NODES.explore_v16_quest=snap.v16quest;if(snap.v16bond)NODES.explore_v16_bond=snap.v16bond;if(snap.v16alex)NODES.explore_v16_alex=snap.v16alex;if(snap.v17bond)NODES.explore_v17_bond=snap.v17bond;if(snap.v17thought)NODES.explore_v17_thought=snap.v17thought;if(snap.v17ending)NODES.explore_v17_ending=snap.v17ending;if(snap.v18event)NODES.explore_v18_event=snap.v18event;if(!NODES[data.node])throw Error('missing event');}state={...fresh(),...data,social:{miguelMeetings:0,alexTension:0,...(data.social||{})},stats:{...fresh().stats,...data.stats},exploration:{...fresh().exploration,...(data.exploration||{})}};show('game');render();closeModal();}catch{modal('불러오기 실패','저장 데이터가 올바르지 않습니다.');}}
@@ -575,7 +822,7 @@ function gallery(){
  }
  modal('회상 갤러리',wrap);
 }
-function settings(){const wrap=document.createElement('div');const p=document.createElement('p');p.className='hint';p.textContent='DELHARSA : 보라색의 밤 · 황궁 일상 125종 · 날짜별 특별 이벤트 · v19 황궁 소문과 인연\n게임은 브라우저의 로컬 저장소에 진행 상황을 보관합니다.';wrap.append(p);const btn=document.createElement('button');btn.textContent='저장 데이터 초기화';btn.onclick=()=>{if(confirm('저장 데이터를 삭제할까요?')){localStorage.removeItem(SAVE_KEY);modal('초기화 완료','저장 데이터가 삭제되었습니다.');}};wrap.append(btn);modal('설정',wrap);}
+function settings(){const wrap=document.createElement('div');const p=document.createElement('p');p.className='hint';p.textContent='DELHARSA : 보라색의 밤 · 황궁 일상 125종 · 날짜별 특별 이벤트 · v22 약속 장소별 대화와 관계 심화\n게임은 브라우저의 로컬 저장소에 진행 상황을 보관합니다.';wrap.append(p);const btn=document.createElement('button');btn.textContent='저장 데이터 초기화';btn.onclick=()=>{if(confirm('저장 데이터를 삭제할까요?')){localStorage.removeItem(SAVE_KEY);modal('초기화 완료','저장 데이터가 삭제되었습니다.');}};wrap.append(btn);modal('설정',wrap);}
 // v11: 게임 내 설정 자료실 — Markdown 원본을 그대로 열람하고 개별 파일로 이동할 수 있습니다.
 const LORE_FILES=[
  ['목차 및 정리 원칙','00_설정집_목차.md'],
@@ -591,7 +838,10 @@ const LORE_FILES=[
  ['텍스트 전용 연출','10_텍스트_전용_연출.md'],
  ['v17 서술과 관계 분기','11_v17_서술_관계_의뢰.md'],
  ['v18 시간대 NPC와 약속·연속 사건','12_v18_시간대_NPC_약속_연속사건.md'],
- ['v19 소문·인연·약속 후속','13_v19_인연과_소문_약속후속.md']
+ ['v19 소문·인연·약속 후속','13_v19_인연과_소문_약속후속.md'],
+ ['v20 소문 검증·NPC 부탁·감정 일지','14_v20_소문검증_개별부탁_감정일지.md'],
+ ['v21 후일담·소문·약속 장소·감정 변화','15_v21_후일담_소문연쇄_약속장소_감정변화.md'],
+ ['v22 장소별 약속·인연·갈등·일지 비교','16_v22_장소별약속_인연심화_소문대응_감정비교.md']
 ];
 function loreLibrary(){
  const wrap=document.createElement('div');wrap.className='lore-library';
